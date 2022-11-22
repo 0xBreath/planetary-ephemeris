@@ -14,6 +14,8 @@ pub use time::*;
 pub use right_ascension::*;
 pub use alignment::*;
 
+pub type Matrix = Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)>;
+
 /// Isolate planetary ephemeral data from API response
 pub fn extract_data(response: String) -> String {
   let mut data = String::new();
@@ -58,6 +60,20 @@ pub fn format_to_vec(data: String) -> Vec<(Time, f32)> {
     vec.push((time, ra_degrees));
   }
   vec
+}
+
+pub fn remove_duplicate_values(vec: &mut Vec<(Time, f32, Alignment)>) {
+  if vec.is_empty() {
+    return;
+  }
+  let mut i = 0;
+  while i < vec.len() - 1 {
+    if vec[i].2 == vec[i + 1].2 {
+      vec.remove(i);
+    } else {
+      i += 1;
+    }
+  }
 }
 
 

@@ -1,4 +1,4 @@
-use chrono::Datelike;
+use chrono::{Datelike, TimeZone};
 
 #[derive(Clone, Debug)]
 pub struct Time {
@@ -36,7 +36,7 @@ impl Time {
     let month = Month::from_abbrev(month_abbrev);
 
     let day = &date[(month_delim+5)..];
-    Time::new(year, &month, &Day::from_str(day))
+    Time::new(year, &month, &Day::from_string(day))
   }
   /// Convert `chrono::DateTime` to `Time`
   pub fn today() -> Self {
@@ -44,6 +44,25 @@ impl Time {
     let year = date.naive_utc().year();
     let month = Month::from_num(date.naive_utc().month());
     let day = Day::from_num(date.naive_utc().day());
+    Time::new(year, &month, &day)
+  }
+  /// Increment Time by a number of days
+  pub fn delta_date(&self, days: i64) -> Self {
+    let chrono_date = chrono::NaiveDate::from_ymd_opt(
+      self.year,
+      self.month.to_num(),
+      self.day.to_num()
+    ).expect("failed to convert Time to chrono::NaiveDate");
+    // convert NaiveDate to NaiveDateTime
+    let chrono_date = chrono::NaiveDateTime::new(
+      chrono_date,
+      chrono::NaiveTime::from_hms_opt(0, 0, 0).expect("failed to create NaiveTime")
+    );
+
+    let date = chrono_date + chrono::Duration::days(days);
+    let year = date.year();
+    let month = Month::from_num(date.month());
+    let day = Day::from_num(date.day());
     Time::new(year, &month, &day)
   }
 }
@@ -81,7 +100,7 @@ impl Month {
       Month::December => "12",
     }
   }
-
+  /// Used to convert 'Horizon API' time response to `Month`
   pub fn from_abbrev(abbrev: &str) -> Self {
     match abbrev {
       "Jan" => Month::January,
@@ -115,6 +134,23 @@ impl Month {
       11 => Month::November,
       12 => Month::December,
       _ => panic!("Invalid month number: {}", num),
+    }
+  }
+
+  pub fn to_num(&self) -> u32 {
+    match self {
+      Month::January => 1,
+      Month::February => 2,
+      Month::March => 3,
+      Month::April => 4,
+      Month::May => 5,
+      Month::June => 6,
+      Month::July => 7,
+      Month::August => 8,
+      Month::September => 9,
+      Month::October => 10,
+      Month::November => 11,
+      Month::December => 12,
     }
   }
 }
@@ -191,7 +227,7 @@ impl Day {
     }
   }
 
-  pub fn from_str(day: &str) -> Self {
+  pub fn from_string(day: &str) -> Self {
     match day {
       "01" => Day::One,
       "02" => Day::Two,
@@ -262,6 +298,42 @@ impl Day {
       30 => Day::Thirty,
       31 => Day::ThirtyOne,
       _ => panic!("Invalid day number: {}", num),
+    }
+  }
+
+  pub fn to_num(&self) -> u32 {
+    match self {
+      Day::One => 1,
+      Day::Two => 2,
+      Day::Three => 3,
+      Day::Four => 4,
+      Day::Five => 5,
+      Day::Six => 6,
+      Day::Seven => 7,
+      Day::Eight => 8,
+      Day::Nine => 9,
+      Day::Ten => 10,
+      Day::Eleven => 11,
+      Day::Twelve => 12,
+      Day::Thirteen => 13,
+      Day::Fourteen => 14,
+      Day::Fifteen => 15,
+      Day::Sixteen => 16,
+      Day::Seventeen => 17,
+      Day::Eighteen => 18,
+      Day::Nineteen => 19,
+      Day::Twenty => 20,
+      Day::TwentyOne => 21,
+      Day::TwentyTwo => 22,
+      Day::TwentyThree => 23,
+      Day::TwentyFour => 24,
+      Day::TwentyFive => 25,
+      Day::TwentySix => 26,
+      Day::TwentySeven => 27,
+      Day::TwentyEight => 28,
+      Day::TwentyNine => 29,
+      Day::Thirty => 30,
+      Day::ThirtyOne => 31,
     }
   }
 }

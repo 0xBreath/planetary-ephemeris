@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 
 #[derive(Clone, Debug)]
 pub enum Alignment {
@@ -44,5 +45,11 @@ impl Alignment {
     } else {
       None
     }
+  }
+}
+
+impl PartialEq<Self> for Alignment {
+  fn eq(&self, other: &Self) -> bool {
+    self.to_str() == other.to_str()
   }
 }

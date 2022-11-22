@@ -1,10 +1,10 @@
 use utils::*;
 
-pub async fn heliocentric(planet: &Planet) -> String {
+pub async fn heliocentric(planet: &Planet, period_days: i64) -> String {
   let command = Target::new(planet);
   let today = Time::today();
   let start_time = Time::new(today.year, &today.month, &today.day);
-  let stop_time = Time::new(today.year + 1, &today.month, &today.day);
+  let stop_time = start_time.delta_date(period_days);
   let quantities = Quantities::default();
   let query = Query::heliocentric(command, start_time, stop_time, quantities);
 
@@ -17,11 +17,11 @@ pub async fn heliocentric(planet: &Planet) -> String {
   extract_data(data)
 }
 
-pub async fn geocentric(planet: &Planet) -> Vec<(Time, f32)> {
+pub async fn geocentric(planet: &Planet, period_days: i64) -> Vec<(Time, f32)> {
   let command = Target::new(planet);
   let today = Time::today();
   let start_time = Time::new(today.year, &today.month, &today.day);
-  let stop_time = Time::new(today.year + 1, &today.month, &today.day);
+  let stop_time = start_time.delta_date(period_days);
   let quantities = Quantities::default();
   let query = Query::geocentric(command, start_time, stop_time, quantities);
 
@@ -36,8 +36,8 @@ pub async fn geocentric(planet: &Planet) -> Vec<(Time, f32)> {
 }
 
 pub async fn lunar_phases() -> Vec<(Time, f32, Alignment)> {
-  let moon = geocentric(&Planet::Moon).await;
-  let sun = geocentric(&Planet::Sun).await;
+  let moon = geocentric(&Planet::Moon, 30).await;
+  let sun = geocentric(&Planet::Sun, 30).await;
 
   let mut vec: Vec<(Time, f32, Alignment)> = Vec::new();
   for (
@@ -72,7 +72,7 @@ pub async fn lunar_phases() -> Vec<(Time, f32, Alignment)> {
 }
 
 // matrix of planet alignments relative to one another
-pub async fn alignment_matrix() -> Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)> {
+pub async fn alignment_matrix(period_days: i64) -> Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)> {
   let planets = vec![
     Planet::Sun,
     Planet::Moon,
@@ -86,13 +86,13 @@ pub async fn alignment_matrix() -> Vec<(Planet, Planet, Vec<(Time, f32, Alignmen
     Planet::Pluto,
   ];
 
-  let mut matrix: Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)> = Vec::new();
+  let mut matrix: Matrix = Vec::new();
 
   for (index, planet_a) in planets.iter().enumerate() {
-    let planet_a_alignments = geocentric(planet_a).await;
+    let planet_a_alignments = geocentric(planet_a, period_days).await;
     for planet_b_index in (index+1)..planets.len() {
       let planet_b = &planets[planet_b_index];
-      let planet_b_alignments = geocentric(planet_b).await;
+      let planet_b_alignments = geocentric(planet_b, period_days).await;
 
       let mut vec: Vec<(Time, f32, Alignment)> = Vec::new();
       for (
@@ -105,6 +105,7 @@ pub async fn alignment_matrix() -> Vec<(Planet, Planet, Vec<(Time, f32, Alignmen
           vec.push((time.clone(), angle, alignment));
         }
       }
+      remove_duplicate_values(&mut vec);
       matrix.push((planet_a.clone(), planet_b.clone(), vec));
     }
   }

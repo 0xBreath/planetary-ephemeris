@@ -1,6 +1,5 @@
 
 mod queries;
-use utils::*;
 use log::LevelFilter;
 use simplelog::{
   ColorChoice, Config, TermLogger, TerminalMode,
@@ -10,13 +9,13 @@ use simplelog::{
 async fn main() {
   init_logger();
 
-  let matrix = queries::alignment_matrix().await;
+  let matrix = queries::alignment_matrix(2).await;
   for (planet_a, planet_b, vec) in matrix {
-    println!("{} - {}", planet_a.to_str(), planet_b.to_str());
 
     for (time, angle, alignment) in vec {
-      //println!("{:?}", time.as_string());
-      //println!("\t{}°, {:?}", angle, alignment);
+      println!("{} - {}", planet_a.to_str(), planet_b.to_str());
+      println!("\t{:?}", time.as_string());
+      println!("\t{}°, {:?}", angle, alignment);
     }
   }
 }
