@@ -1,12 +1,32 @@
-use utils::*;
+
 mod queries;
+use utils::*;
+use log::LevelFilter;
+use simplelog::{
+  ColorChoice, Config, TermLogger, TerminalMode,
+};
 
 #[tokio::main]
 async fn main() {
-    let mercury = format_to_vec(queries::mercury_past_month().await);
-    println!("Mercury past month:");
-    for line in mercury.into_iter() {
-        let (time, angle) = (line.0, line.1);
-        println!("{}\t{}", time.value, angle);
+  init_logger();
+
+  let matrix = queries::alignment_matrix().await;
+  for (planet_a, planet_b, vec) in matrix {
+    println!("{} - {}", planet_a.to_str(), planet_b.to_str());
+
+    for (time, angle, alignment) in vec {
+      //println!("{:?}", time.as_string());
+      //println!("\t{}°, {:?}", angle, alignment);
     }
+  }
+}
+
+
+fn init_logger() {
+  TermLogger::init(
+    LevelFilter::Info,
+    Config::default(),
+    TerminalMode::Mixed,
+    ColorChoice::Auto,
+  ).expect("failed to initialize logger");
 }

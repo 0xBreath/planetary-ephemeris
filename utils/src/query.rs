@@ -10,7 +10,7 @@ pub struct Query {
 }
 
 impl Query {
-  pub fn new(
+  pub fn geocentric(
     command: Target,
     start_time: Time,
     stop_time: Time,
@@ -20,7 +20,24 @@ impl Query {
     let step_size = StepSize::default().value;
     let value = format!(
       "{}{}{}{}{}{}{}",
-      BASE_QUERY, command.value, default_args, start_time.value, stop_time.value, step_size, quantities.value
+      BASE_QUERY, command.value, default_args, start_time.start_time(), stop_time.stop_time(), step_size, quantities.value
+    );
+    Self {
+      value,
+    }
+  }
+
+  pub fn heliocentric(
+    command: Target,
+    start_time: Time,
+    stop_time: Time,
+    quantities: Quantities,
+  ) -> Self {
+    let default_args = "&OBJ_DATA='YES'&MAKE_EPHEM='YES'&EPHEM_TYPE='OBSERVER'&CENTER='500@sun'";
+    let step_size = StepSize::default().value;
+    let value = format!(
+      "{}{}{}{}{}{}{}",
+      BASE_QUERY, command.value, default_args, start_time.start_time(), stop_time.stop_time(), step_size, quantities.value
     );
     Self {
       value,

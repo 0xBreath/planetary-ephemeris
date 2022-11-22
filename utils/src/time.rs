@@ -1,47 +1,50 @@
+use chrono::Datelike;
 
+#[derive(Clone, Debug)]
 pub struct Time {
-  pub year: u32,
+  pub year: i32,
   pub month: Month,
   pub day: Day,
-  pub value: String
 }
 
 impl Time {
-  pub fn new(year: u32, month: Month, day: Day) -> Self {
+  pub fn new(year: i32, month: &Month, day: &Day) -> Self {
     Self {
       year,
       month: month.clone(),
       day: day.clone(),
-      value: format!("{}-{}-{}", year, month.to_string(), day.to_string()),
     }
   }
-  pub fn start_time(year: u32, month: Month, day: Day) -> Self {
-    Self {
-      year,
-      month: month.clone(),
-      day: day.clone(),
-      value: format!("&START_TIME='{}-{}-{}'", year, month.to_string(), day.to_string()),
-    }
+  pub fn as_string(&self) -> String {
+    format!("{}-{}-{}", self.year, self.month.to_string(), self.day.to_string())
   }
-
-  pub fn stop_time(year: u32, month: Month, day: Day) -> Self {
-    Self {
-      year,
-      month: month.clone(),
-      day: day.clone(),
-      value: format!("&STOP_TIME='{}-{}-{}'", year, month.to_string(), day.to_string()),
-    }
+  /// Start time for 'Horizon API'
+  pub fn start_time(&self) -> String {
+    format!("&START_TIME='{}'", self.as_string())
   }
-  /// Example: 2022-Nov-01
-  pub fn convert_response(date: &str) -> Self {
-    let month_delim = date.find("-").unwrap();
+  /// Stop time for 'Horizon API'
+  pub fn stop_time(&self) -> String {
+      format!("&STOP_TIME='{}'", self.as_string())
+  }
+  /// Convert 'Horizon API' time response to Self
+  /// Example: 2022-Nov-01 -> Time { year: 2022, month: Month::November, day: Day::One }
+  pub fn convert_api_response(date: &str) -> Self {
+    let month_delim = date.find('-').unwrap();
     let year = &date[..month_delim];
-    let year = year.parse::<u32>().unwrap();
+    let year = year.parse::<i32>().unwrap();
     let month_abbrev = &date[(month_delim+1)..(month_delim+4)];
     let month = Month::from_abbrev(month_abbrev);
 
     let day = &date[(month_delim+5)..];
-    Time::new(year, month, Day::from_str(day))
+    Time::new(year, &month, &Day::from_str(day))
+  }
+  /// Convert `chrono::DateTime` to `Time`
+  pub fn today() -> Self {
+    let date = chrono::Utc::now();
+    let year = date.naive_utc().year();
+    let month = Month::from_num(date.naive_utc().month());
+    let day = Day::from_num(date.naive_utc().day());
+    Time::new(year, &month, &day)
   }
 }
 
@@ -62,7 +65,7 @@ pub enum Month {
   December,
 }
 impl Month {
-  fn to_string(&self) -> &str {
+  pub fn to_string(&self) -> &str {
     match self {
       Month::January => "01",
       Month::February => "02",
@@ -79,7 +82,7 @@ impl Month {
     }
   }
 
-  fn from_abbrev(abbrev: &str) -> Self {
+  pub fn from_abbrev(abbrev: &str) -> Self {
     match abbrev {
       "Jan" => Month::January,
       "Feb" => Month::February,
@@ -94,6 +97,24 @@ impl Month {
       "Nov" => Month::November,
       "Dec" => Month::December,
       _ => panic!("Invalid month abbreviation: {}", abbrev),
+    }
+  }
+
+  pub fn from_num(num: u32) -> Self {
+    match num {
+      1 => Month::January,
+      2 => Month::February,
+      3 => Month::March,
+      4 => Month::April,
+      5 => Month::May,
+      6 => Month::June,
+      7 => Month::July,
+      8 => Month::August,
+      9 => Month::September,
+      10 => Month::October,
+      11 => Month::November,
+      12 => Month::December,
+      _ => panic!("Invalid month number: {}", num),
     }
   }
 }
@@ -134,7 +155,7 @@ pub enum Day {
   ThirtyOne,
 }
 impl Day {
-  fn to_string(&self) -> &str {
+  pub fn to_string(&self) -> &str {
     match self {
       Day::One => "01",
       Day::Two => "02",
@@ -204,6 +225,43 @@ impl Day {
       "30" => Day::Thirty,
       "31" => Day::ThirtyOne,
       _ => panic!("Invalid day: {}", day),
+    }
+  }
+
+  pub fn from_num(num: u32) -> Self {
+    match num {
+      1 => Day::One,
+      2 => Day::Two,
+      3 => Day::Three,
+      4 => Day::Four,
+      5 => Day::Five,
+      6 => Day::Six,
+      7 => Day::Seven,
+      8 => Day::Eight,
+      9 => Day::Nine,
+      10 => Day::Ten,
+      11 => Day::Eleven,
+      12 => Day::Twelve,
+      13 => Day::Thirteen,
+      14 => Day::Fourteen,
+      15 => Day::Fifteen,
+      16 => Day::Sixteen,
+      17 => Day::Seventeen,
+      18 => Day::Eighteen,
+      19 => Day::Nineteen,
+      20 => Day::Twenty,
+      21 => Day::TwentyOne,
+      22 => Day::TwentyTwo,
+      23 => Day::TwentyThree,
+      24 => Day::TwentyFour,
+      25 => Day::TwentyFive,
+      26 => Day::TwentySix,
+      27 => Day::TwentySeven,
+      28 => Day::TwentyEight,
+      29 => Day::TwentyNine,
+      30 => Day::Thirty,
+      31 => Day::ThirtyOne,
+      _ => panic!("Invalid day number: {}", num),
     }
   }
 }
