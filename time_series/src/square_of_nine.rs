@@ -87,7 +87,7 @@ impl<const N: usize> SquareOfNine<N> {
     let mut empty_harmonics = 0;
     // each new harmonic rotates/increments harmonic.
     // Starting harmonic is Zero, so start on SevenEighths to increment to Zero in first iteration.
-    let mut last_harmonic = Harmonic::SevenEighths;
+    let mut last_harmonic = Harmonic::ThreeFourths;
     // loop through matrix size
     // each index is used twice as the matrix spirals
     let mut index = 1;
@@ -95,15 +95,21 @@ impl<const N: usize> SquareOfNine<N> {
       // shift left by 1 to start next spiral
       x -= 1;
       value = Input::increment(value);
-      matrix[y][x] = Point {
-        value,
-        harmonic: None
-      };
       debug!("START LEFT, {:?} [{},{}]", matrix[y][x].value, x, y);
-
-      let mut inner_index = 0;
+      if index == 1 {
+        matrix[y][x] = Point {
+          value,
+          harmonic: Some(last_harmonic)
+        };
+      } else {
+        matrix[y][x] = Point {
+          value,
+          harmonic: None
+        };
+      }
 
       // spiral up by index
+      let mut inner_index = 0;
       let mut up_empty_harmonics_length = empty_harmonics - 1;
       while inner_index < index {
         for _ in 0..up_empty_harmonics_length {

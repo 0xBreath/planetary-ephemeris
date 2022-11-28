@@ -21,9 +21,13 @@ fn square_of_nine() {
   let square_of_nine = SquareOfNine::<7>::new(Input::Angle(1.0));
   for y in square_of_nine.matrix.iter() {
     for x in y {
-      match x.value {
-        Input::Date(time) => print!("{}\t", time.as_string()),
-        Input::Angle(angle) => print!("{}\t", angle),
+      // match x.value {
+      //   Input::Date(time) => print!("{}\t", time.as_string()),
+      //   Input::Angle(angle) => print!("{}\t", angle),
+      // }
+      match x.harmonic {
+        Some(harmonic) => print!("{}\t", harmonic as i32),
+        None => print!("-\t"),
       }
     }
     println!();
