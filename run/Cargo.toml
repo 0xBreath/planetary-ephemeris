@@ -4,10 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "run"
+path = "src/main.rs"
 
 [dependencies]
-utils = { path = "../utils" }
-reqwest = "0.11.6"
+# internal deps
+ephemeris = { path = "../ephemeris" }
+time_series = { path = "../time_series" }
+# external deps
 tokio = { version = "1.22.0", features = ["full"] }
 log = "0.4"
 simplelog = "0.12.0"

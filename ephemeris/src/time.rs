@@ -1,6 +1,6 @@
 use chrono::{Datelike, TimeZone};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Time {
   pub year: i32,
   pub month: Month,
@@ -26,6 +26,7 @@ impl Time {
   pub fn stop_time(&self) -> String {
       format!("&STOP_TIME='{}'", self.as_string())
   }
+
   /// Convert 'Horizon API' time response to Self
   /// Example: 2022-Nov-01 -> Time { year: 2022, month: Month::November, day: Day::One }
   pub fn convert_api_response(date: &str) -> Self {
@@ -65,10 +66,21 @@ impl Time {
     let day = Day::from_num(date.day());
     Time::new(year, &month, &day)
   }
+
+  /// Create Time from UNIX timestamp
+  pub fn from_unix(unix: i64) -> Self {
+    let date = chrono::Utc
+      .timestamp_opt(unix, 0)
+      .unwrap();
+    let year = date.naive_utc().year();
+    let month = Month::from_num(date.naive_utc().month());
+    let day = Day::from_num(date.naive_utc().day());
+    Time::new(year, &month, &day)
+  }
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Month {
   January,
   February,
@@ -156,7 +168,7 @@ impl Month {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Day {
   One,
   Two,

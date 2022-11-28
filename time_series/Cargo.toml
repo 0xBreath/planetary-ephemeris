@@ -1,10 +1,13 @@
 [package]
-name = "utils"
+name = "time_series"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.22"
+# internal deps
+ephemeris = { path = "../ephemeris" }
+# external deps
+csv = "1.1.6"
 log = "0.4"
