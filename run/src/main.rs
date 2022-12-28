@@ -113,29 +113,40 @@ pub async fn test_planetary_matrix() {
 }
 
 pub fn test_square_of_nine() {
-  let square_of_nine = SquareOfNine::<7>::new(1.0);
-  for y in square_of_nine.matrix.iter() {
-    for x in y {
-      match x.harmonic {
-        Some(harmonic) => print!("{}\t", harmonic as i32),
-        None => print!("-\t"),
+  const N: usize = 81;
+  let square_of_nine = SquareOfNine::<N>::new(1, 10);
+  if N < 13 {
+    for y in square_of_nine.matrix.iter() {
+      for x in y {
+        match x.harmonic {
+          Some(harmonic) => print!("{}\t", harmonic as i32),
+          None => print!("-\t"),
+        }
       }
+      println!();
     }
-    println!();
-  }
-  println!("--------------------------------------------------------------------------------------------------------");
-  for y in square_of_nine.matrix.iter() {
-    for x in y {
-      print!("{}\t", x.value)
+    println!("--------------------------------------------------------------------------------------------------------");
+    for y in square_of_nine.matrix.iter() {
+      for x in y {
+        print!("{}\t", x.value)
+      }
+      println!();
     }
-    println!();
+    println!("--------------------------------------------------------------------------------------------------------");
   }
+  //used to check size of outermost square of nine ring
+  let zero_zero = square_of_nine.matrix[0][0].value;
+  let one_one = square_of_nine.matrix[1][1].value;
+  let two_two = square_of_nine.matrix[2][2].value;
+  println!("Size of outermost ring: {:?}", (zero_zero - one_one) as u32);
+  println!("Size of second outermost ring: {:?}", (one_one - two_two) as u32);
   println!("--------------------------------------------------------------------------------------------------------");
+  println!("PRICE\tHARMONIC\t\tDEGREES OF ARC");
   for point in square_of_nine.values.into_iter() {
     match point.harmonic {
       None => {
         match point.arc {
-          None => println!("{:?}\t{:?}\t\t\t{}\r", point.value, point.harmonic, "None"),
+          None => println!("{:?}\t{:?}\t\t\t{}\r", point.value, point.harmonic, "-"),
           Some(arc) => println!("{:?}\t{:?}\t\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
         }
       },
@@ -149,13 +160,4 @@ pub fn test_square_of_nine() {
       Some(Harmonic::SevenEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
     }
   }
-  println!("--------------------------------------------------------------------------------------------------------");
-
-  //used to check size of outermost square of nine ring
-  let zero_zero = square_of_nine.matrix[0][0].value;
-  let one_one = square_of_nine.matrix[1][1].value;
-  let two_two = square_of_nine.matrix[2][2].value;
-  println!("Size of outermost ring: {:?}", (zero_zero - one_one) as u32);
-  println!("Size of second outermost ring: {:?}", (one_one - two_two) as u32);
-  println!();
 }

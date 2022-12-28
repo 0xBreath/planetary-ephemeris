@@ -91,7 +91,9 @@ pub struct SquareOfNine<const N: usize> {
 }
 
 impl<const N: usize> SquareOfNine<N> {
-  pub fn new(origin: f64) -> Self {
+  pub fn new(origin: u32, step: u32) -> Self {
+    let origin = origin as  f64;
+    let step = step as f64;
     if N % 2 == 0 {
       panic!("matrix size N must be odd");
     }
@@ -129,7 +131,7 @@ impl<const N: usize> SquareOfNine<N> {
       let arc_per_integer = 360.0 / spiral_size as f32;
       // shift left by 1 to start next spiral
       x -= 1;
-      value += 1.0;
+      value += step;
       if index == 1 {
         angle.set(harmonic.to_num());
         let point = Point {
@@ -156,7 +158,7 @@ impl<const N: usize> SquareOfNine<N> {
       while inner_index < index {
         for _ in 0..up_empty_harmonics_length {
           y -= 1;
-          value += 1.0;
+          value += step;
           angle.decrement(arc_per_integer);
           let point = Point {
             value,
@@ -169,7 +171,7 @@ impl<const N: usize> SquareOfNine<N> {
         }
 
         y -= 1;
-        value += 1.0;
+        value += step;
         harmonic = harmonic.next();
         angle.set(harmonic.to_num());
         let point = Point {
@@ -188,7 +190,7 @@ impl<const N: usize> SquareOfNine<N> {
       while inner_index < index + 1 {
         for _ in 0..empty_harmonics {
           x += 1;
-          value += 1.0;
+          value += step;
           angle.decrement(arc_per_integer);
           let point = Point {
             value,
@@ -201,7 +203,7 @@ impl<const N: usize> SquareOfNine<N> {
         }
 
         x += 1;
-        value += 1.0;
+        value += step;
         harmonic = harmonic.next();
         angle.set(harmonic.to_num());
         let point = Point {
@@ -219,7 +221,7 @@ impl<const N: usize> SquareOfNine<N> {
       while inner_index < index + 1 {
         for _ in 0..empty_harmonics {
           y += 1;
-          value += 1.0;
+          value += step;
           angle.decrement(arc_per_integer);
           let point = Point {
             value,
@@ -232,7 +234,7 @@ impl<const N: usize> SquareOfNine<N> {
         }
 
         y += 1;
-        value += 1.0;
+        value += step;
         harmonic = harmonic.next();
         angle.set(harmonic.to_num());
         let point = Point {
@@ -249,7 +251,7 @@ impl<const N: usize> SquareOfNine<N> {
       while inner_index < index + 1 {
         for _ in 0..empty_harmonics {
           x -= 1;
-          value += 1.0;
+          value += step;
           angle.decrement(arc_per_integer);
           let point = Point {
             value,
@@ -262,7 +264,7 @@ impl<const N: usize> SquareOfNine<N> {
         }
 
         x -= 1;
-        value += 1.0;
+        value += step;
         harmonic = harmonic.next();
         angle.set(harmonic.to_num());
         let point = Point {
