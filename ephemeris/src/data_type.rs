@@ -1,4 +1,9 @@
 
+pub enum DataType {
+  RightAscension,
+  Declination,
+}
+
 pub struct RightAscension {
   pub hours: i32,
   pub minutes: i32,
@@ -21,5 +26,20 @@ impl RightAscension {
     let total_seconds = (hours * 3600.0) + (minutes * 60.0) + seconds;
     // 86_400 seconds/day / 240 = 360 degrees/day
     total_seconds / 240.0
+  }
+}
+
+pub struct Declination {
+  pub degrees: f32
+}
+
+impl Declination {
+  pub fn from_api_response(is_positive: bool, degrees: f32, minutes: f32, seconds: f32) -> f32 {
+    let degrees = degrees + (minutes / 60.0) + (seconds / 3600.0);
+    if is_positive {
+      degrees
+    } else {
+      degrees * -1.0
+    }
   }
 }

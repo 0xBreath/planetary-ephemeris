@@ -44,12 +44,12 @@ impl TickerData {
   }
 
   pub fn find_local_highs(&self) -> Vec<Candle> {
-    // identify a daily reversal by checking maximum/minimum for period (day - 5) .. (day + 5)
+    // identify a daily reversal by checking maximum/minimum for period (day - 10) .. (day + 10)
     let mut local_highs = Vec::<Candle>::new();
     for (index, index_candle) in self.data.iter().enumerate() {
       let mut not_max = false;
 
-      for i in (index-10)..(index+10) {
+      for i in (index-5)..(index+5) {
         if i >= self.data.len() {
           continue;
         }
@@ -79,12 +79,12 @@ impl TickerData {
   }
 
   pub fn find_local_lows(&self) -> Vec<Candle> {
-    // identify a daily reversal by checking maximum/minimum for period (day - 5) .. (day + 5)
+    // identify a daily reversal by checking maximum/minimum for period (day - 10) .. (day + 10)
     let mut local_lows = Vec::<Candle>::new();
     for (index, index_candle) in self.data.iter().enumerate() {
       let mut not_min = false;
 
-      for i in (index-10)..(index+10) {
+      for i in (index-5)..(index+5) {
         if i >= self.data.len() {
           continue;
         }

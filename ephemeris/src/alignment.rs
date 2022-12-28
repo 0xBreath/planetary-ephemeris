@@ -36,6 +36,17 @@ impl Alignment {
       Alignment::Sextile => "Sextile",
     }
   }
+  
+  pub fn to_num(&self) -> f32 {
+    match *self {
+      Alignment::Conjunct => 0.0,
+      Alignment::Opposite => 180.0,
+      Alignment::Trine => 120.0,
+      Alignment::Square => 90.0,
+      Alignment::Quintile => 72.0,
+      Alignment::Sextile => 60.0,
+    }
+  }
 
   pub fn normalize(angle: f32) -> f32 {
     if angle < 0.0 {

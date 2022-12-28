@@ -1,4 +1,4 @@
-use crate::{Alignment, Origin, Planet, RightAscension};
+use crate::{Alignment, DataType, Declination, Origin, Planet, RightAscension};
 use crate::target::Target;
 use crate::quantities::Quantities;
 use crate::step_size::StepSize;
@@ -16,6 +16,7 @@ impl Query {
   pub async fn query(
     origin: Origin,
     planet: &Planet,
+    data_type: DataType,
     mut start_time: Time,
     period_days: i64,
   ) -> Vec<(Time, f32)> {
@@ -39,7 +40,10 @@ impl Query {
       .await
       .expect("failed to read response");
     let data = Self::extract_data(data);
-    Self::format_to_vec(data)
+    match data_type {
+      DataType::RightAscension => Self::format_for_right_ascension(data),
+      DataType::Declination => Self::format_for_declination(data),
+    }
   }
 
   /// Construct a query to interact with the 'Horizon API'
@@ -81,7 +85,7 @@ impl Query {
   }
 
   /// Format API response of into vector of (Time, right ascension as degrees)
-  pub fn format_to_vec(data: String) -> Vec<(Time, f32)> {
+  pub fn format_for_right_ascension(data: String) -> Vec<(Time, f32)> {
     let mut vec = Vec::new();
     let lines = data.lines();
     for line in lines {
@@ -100,27 +104,79 @@ impl Query {
       let ra_ssss = line
         .next().unwrap()
         .parse::<f32>().unwrap();
-      let ra = RightAscension::new(ra_hh as i32, ra_mm as i32, ra_ssss);
-      let ra_degrees = ra.to_degrees();
-
+      let ra_degrees = RightAscension::new(ra_hh as i32, ra_mm as i32, ra_ssss).to_degrees();
       vec.push((time, ra_degrees));
     }
     vec
   }
 
-  /// TODO: take alignment as param, take closest value in vector to alignment. Right now it takes the last value
-  /// Remove duplicate Alignment values for consecutive dates
-  pub fn remove_duplicate_values(vec: &mut Vec<(Time, f32, Alignment)>) {
-    if vec.is_empty() {
-      return;
+  /// Format API response of into vector of (Time, declination as degrees)
+  pub fn format_for_declination(data: String) -> Vec<(Time, f32)> {
+    let mut vec = Vec::new();
+    let lines = data.lines();
+    for line in lines {
+      let mut line = line.split_whitespace();
+      let time = String::from(line.next().unwrap());
+      let time = Time::convert_api_response(&time);
+      // next after YYYY-MM-DD is seconds... skip it
+      line.next().unwrap();
+      // next 3 values are Right Ascension (HH MM SS.SS)... skip it
+      line.next().unwrap();
+      line.next().unwrap();
+      line.next().unwrap();
+      // next 3 values are Declination (degrees MM SS.S)
+      // isolate sign +/- from degrees
+      let degrees_with_sign = line.next().unwrap();
+      let sign = degrees_with_sign.chars().next().unwrap();
+      let is_positive = match sign {
+        '+' => true,
+        '-' => false,
+        _ => panic!("invalid sign"),
+      };
+      let degrees = degrees_with_sign[1..].parse::<f32>().unwrap();
+      let minutes = line
+        .next().unwrap()
+        .parse::<f32>().unwrap();
+      let seconds = line
+        .next().unwrap()
+        .parse::<f32>().unwrap();
+      let declination = Declination::from_api_response(is_positive, degrees, minutes, seconds);
+      vec.push((time, declination));
     }
+    vec
+  }
+
+  /// Remove duplicate Alignment values for consecutive dates
+  pub fn remove_duplicate_values(vec: &mut Vec<(Time, f32, Alignment)>) -> Vec<(Time, f32, Alignment)> {
+    if vec.is_empty() {
+      return vec.to_vec();
+    }
+    let mut clean_values = Vec::new();
     let mut i = 0;
     while i < vec.len() - 1 {
-      if vec[i].2 == vec[i + 1].2 {
-        vec.remove(i);
-      } else {
-        i += 1;
+      let mut index = i + 1;
+      if vec.get(index).is_none() || vec.get(i).is_none() {
+        break;
+      }
+      let mut closest_to_alignment_angle = (vec[i].2.to_num() - vec[i].1).abs();
+      let mut closest_to_alignment_index = i;
+      while vec[index].2 == vec[i].2 {
+        let angle_to_alignment = (vec[index].2.to_num() - vec[index].1).abs();
+        if angle_to_alignment < closest_to_alignment_angle {
+          closest_to_alignment_angle = angle_to_alignment;
+          closest_to_alignment_index = index;
+        }
+        index += 1;
+        if vec.get(index).is_none() {
+          break;
+        }
+      }
+      i = index;
+      clean_values.push(vec[closest_to_alignment_index].clone());
+      if i >= vec.len() {
+        break;
       }
     }
+    clean_values
   }
 }
