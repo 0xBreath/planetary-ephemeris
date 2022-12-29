@@ -56,9 +56,9 @@ impl Angle {
   fn set(&mut self, angle: f32) {
     self.0 = angle;
   }
+  /// Intended to function like array bounds, with range maximum being exclusive.
   fn to_arc(self, arc_range: f32) -> (f32, f32) {
-    // 1/3600 = one arc second
-    (self.0 + arc_range - 1.0/3600.0, self.0)
+    (self.0, self.0 + arc_range)
   }
 }
 
@@ -79,28 +79,34 @@ impl Default for Point {
 }
 
 #[derive(Clone, Debug)]
-pub struct SquareOfNine<const N: usize> {
+pub struct SquareOfNine {
   /// Starting value of Square of Nine
   pub origin: f64,
   /// Matrix of coordinates that represent the 'Square of Nine'.
   /// Used for plotting numbers in a visual-friendly grid.
-  pub matrix: [[Point; N]; N],
+  pub matrix: Vec<Vec<Point>>,//[[Point; N]; N],
   /// One-dimensional vector of points in `Square of Nine`.
   /// Used for calculating 'Time=Price' alignments. Not intended for plotting.
   pub values: Vec<Point>
 }
 
-impl<const N: usize> SquareOfNine<N> {
-  pub fn new(origin: u32, step: u32) -> Self {
+impl SquareOfNine {
+  pub fn new(origin: u32, step: f64, dimension: u32) -> Self {
     let origin = origin as  f64;
-    let step = step as f64;
-    if N % 2 == 0 {
+    if dimension % 2 == 0 {
       panic!("matrix size N must be odd");
     }
-    let mut matrix = [[Point::default(); N]; N];
+    let mut matrix = Vec::<Vec<Point>>::new();
+    for _ in 0..dimension {
+      let mut row = Vec::<Point>::new();
+      for _ in 0..dimension {
+        row.push(Point::default());
+      }
+      matrix.push(row);
+    }
     let mut values = Vec::<Point>::new();
     let mut value = origin;
-    let center = N / 2;
+    let center = dimension / 2;
 
     let mut x = center as usize;
     let mut y = center as usize;
@@ -111,7 +117,7 @@ impl<const N: usize> SquareOfNine<N> {
       harmonic: None,
       arc: None
     };
-    matrix[y][y] = point;
+    matrix[y][x] = point;
     values.push(point);
 
 
@@ -127,7 +133,7 @@ impl<const N: usize> SquareOfNine<N> {
     let mut index = 1;
     // size of one spiral of matrix. Increases by 8 with each new spiral.
     let mut spiral_size = 8;
-    while index < N {
+    while index < dimension {
       let arc_per_integer = 360.0 / spiral_size as f32;
       // shift left by 1 to start next spiral
       x -= 1;
@@ -287,5 +293,28 @@ impl<const N: usize> SquareOfNine<N> {
       matrix,
       values
     }
+  }
+
+  pub fn get_point(&self, x: usize, y: usize) -> Option<&Point> {
+    self.matrix.get(y).and_then(|row| row.get(x))
+  }
+
+  pub fn get_values(&self) -> &[Point] {
+    &self.values
+  }
+
+  /// Iterate `SquareOfNine.values` for all `Point.arc` that cover either of the two angles.
+  /// Used to identify a value of a Point that equals the angle of an object.
+  /// Time=Price
+  pub fn find_price_equals_time(&self, angle: f32) -> Vec<Point> {
+    let mut points = Vec::new();
+    for point in self.values.iter() {
+      if let Some((range_min, range_max)) = point.arc {
+        if angle >= range_min && angle < range_max {
+          points.push(*point);
+        }
+      }
+    }
+    points
   }
 }

@@ -43,13 +43,14 @@ impl TickerData {
     }
   }
 
-  pub fn find_local_highs(&self) -> Vec<Candle> {
-    // identify a daily reversal by checking maximum/minimum for period (day - 10) .. (day + 10)
+  /// Find price extreme (highs) in a given range of candles +/- the extreme candle.
+  pub fn find_local_highs(&self, candle_range: usize) -> Vec<Candle> {
+    // identify a daily reversal by checking maximum/minimum for period (day - 5) .. (day + 5)
     let mut local_highs = Vec::<Candle>::new();
     for (index, index_candle) in self.data.iter().enumerate() {
       let mut not_max = false;
 
-      for i in (index-5)..(index+5) {
+      for i in (index-candle_range)..(index+candle_range) {
         if i >= self.data.len() {
           continue;
         }
@@ -66,8 +67,8 @@ impl TickerData {
     local_highs
   }
 
-  pub fn find_highest_high(&self) -> Candle {
-    let local_highs = self.find_local_highs();
+  pub fn find_highest_high(&self, candle_range: usize) -> Candle {
+    let local_highs = self.find_local_highs(candle_range);
     // compare Highs. If LowerHigh occurs, then previous High is HTF_High
     let mut highest_high = local_highs.get(0).unwrap().clone();
     for local_high in local_highs.into_iter() {
@@ -78,13 +79,14 @@ impl TickerData {
     highest_high
   }
 
-  pub fn find_local_lows(&self) -> Vec<Candle> {
-    // identify a daily reversal by checking maximum/minimum for period (day - 10) .. (day + 10)
+  /// Find price extreme (lows) in a given range of candles +/- the extreme candle.
+  pub fn find_local_lows(&self, candle_range: usize) -> Vec<Candle> {
+    // identify a daily reversal by checking maximum/minimum for period (day - 5) .. (day + 5)
     let mut local_lows = Vec::<Candle>::new();
     for (index, index_candle) in self.data.iter().enumerate() {
       let mut not_min = false;
 
-      for i in (index-5)..(index+5) {
+      for i in (index-candle_range)..(index+candle_range) {
         if i >= self.data.len() {
           continue;
         }
@@ -101,8 +103,8 @@ impl TickerData {
     local_lows
   }
 
-  pub fn find_lowest_low(&self) -> Candle {
-    let local_lows = self.find_local_highs();
+  pub fn find_lowest_low(&self, candle_range: usize) -> Candle {
+    let local_lows = self.find_local_highs(candle_range);
     // compare Highs. If LowerHigh occurs, then previous High is HTF_High
     let mut lowest_low = local_lows.get(0).unwrap().clone();
     for local_low in local_lows.into_iter() {
