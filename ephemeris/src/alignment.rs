@@ -1,15 +1,5 @@
 
 #[derive(Clone, Debug)]
-pub enum Alignment {
-  Conjunct,
-  Opposite,
-  Trine,
-  Square,
-  Quintile,
-  Sextile
-}
-
-#[derive(Clone, Debug)]
 pub enum Reversal {
   RangeHigh,
   RangeLow
@@ -25,15 +15,45 @@ pub struct ReversalInfo {
   pub alignment: Alignment,
 }
 
+#[derive(Clone, Debug)]
+pub enum Alignment {
+  Conjunct,
+  Opposite,
+  Trine120,
+  Trine240,
+  Square90,
+  Square270,
+  Quintile72,
+  Quintile144,
+  Quintile216,
+  Quintile288,
+  Sextile60,
+  Sextile300,
+  Octile45,
+  Octile135,
+  Octile225,
+  Octile315,
+}
+
 impl Alignment {
   pub fn to_str(&self) -> &'static str {
     match *self {
       Alignment::Conjunct => "Conjunct",
       Alignment::Opposite => "Opposite",
-      Alignment::Trine => "Trine",
-      Alignment::Square => "Square",
-      Alignment::Quintile => "Quintile",
-      Alignment::Sextile => "Sextile",
+      Alignment::Trine120 => "Trine120",
+      Alignment::Trine240 => "Trine240",
+      Alignment::Square90 => "Square90",
+      Alignment::Square270 => "Square270",
+      Alignment::Quintile72 => "Quintile72",
+      Alignment::Quintile144 => "Quintile144",
+      Alignment::Quintile216 => "Quintile216",
+      Alignment::Quintile288 => "Quintile288",
+      Alignment::Sextile60 => "Sextile60",
+      Alignment::Sextile300 => "Sextile300",
+      Alignment::Octile45 => "Octile45",
+      Alignment::Octile135 => "Octile135",
+      Alignment::Octile225 => "Octile225",
+      Alignment::Octile315 => "Octile315",
     }
   }
   
@@ -41,10 +61,20 @@ impl Alignment {
     match *self {
       Alignment::Conjunct => 0.0,
       Alignment::Opposite => 180.0,
-      Alignment::Trine => 120.0,
-      Alignment::Square => 90.0,
-      Alignment::Quintile => 72.0,
-      Alignment::Sextile => 60.0,
+      Alignment::Trine120 => 120.0,
+      Alignment::Trine240 => 240.0,
+      Alignment::Square90 => 90.0,
+      Alignment::Square270 => 270.0,
+      Alignment::Quintile72 => 72.0,
+      Alignment::Quintile144 => 144.0,
+      Alignment::Quintile216 => 216.0,
+      Alignment::Quintile288 => 288.0,
+      Alignment::Sextile60 => 60.0,
+      Alignment::Sextile300 => 300.0,
+      Alignment::Octile45 => 45.0,
+      Alignment::Octile135 => 135.0,
+      Alignment::Octile225 => 225.0,
+      Alignment::Octile315 => 315.0,
     }
   }
 
@@ -62,90 +92,55 @@ impl Alignment {
     let diff = Alignment::normalize(a - b);
     if diff < margin {
       Some(Alignment::Conjunct)
-    } else if Alignment::normalize(diff - 180.0) < margin {
+    }
+    else if Alignment::normalize(diff - 180.0) < margin {
       Some(Alignment::Opposite)
-    } else if Alignment::normalize(diff - 120.0) < margin || Alignment::normalize(diff - 240.0) < margin {
-      Some(Alignment::Trine)
-    } else if Alignment::normalize(diff - 90.0) < margin || Alignment::normalize(diff - 270.0) < margin {
-      Some(Alignment::Square)
-    } else if Alignment::normalize(diff - 72.0) < margin ||
-      Alignment::normalize(diff - 144.0) < margin ||
-      Alignment::normalize(diff - 216.0) < margin ||
-      Alignment::normalize(diff - 288.0) < margin
-    {
-      Some(Alignment::Quintile)
-    } else if Alignment::normalize(diff - 60.0) < margin ||
-      Alignment::normalize(diff - 300.0) < margin
-    {
-      Some(Alignment::Sextile)
-    } else {
+    }
+    else if Alignment::normalize(diff - 120.0) < margin {
+      Some(Alignment::Trine120)
+    }
+    else if Alignment::normalize(diff - 240.0) < margin {
+      Some(Alignment::Trine240)
+    }
+    else if Alignment::normalize(diff - 90.0) < margin {
+      Some(Alignment::Square90)
+    }
+    else if Alignment::normalize(diff - 270.0) < margin {
+      Some(Alignment::Square270)
+    }
+    else if Alignment::normalize(diff - 72.0) < margin {
+      Some(Alignment::Quintile72)
+    }
+    else if Alignment::normalize(diff - 144.0) < margin {
+      Some(Alignment::Quintile144)
+    }
+    else if Alignment::normalize(diff - 216.0) < margin {
+      Some(Alignment::Quintile216)
+    }
+    else if Alignment::normalize(diff - 288.0) < margin {
+      Some(Alignment::Quintile288)
+    }
+    else if Alignment::normalize(diff - 60.0) < margin {
+      Some(Alignment::Sextile60)
+    }
+    else if Alignment::normalize(diff - 300.0) < margin {
+       Some(Alignment::Sextile300)
+    }
+    else if Alignment::normalize(diff - 45.0) < margin {
+      Some(Alignment::Octile45)
+    }
+    else if Alignment::normalize(diff - 135.0) < margin {
+      Some(Alignment::Octile135)
+    }
+    else if Alignment::normalize(diff - 225.0) < margin {
+      Some(Alignment::Octile225)
+    }
+    else if Alignment::normalize(diff - 315.0) < margin {
+      Some(Alignment::Octile315)
+    }
+    else {
       None
     }
-  }
-
-  pub fn square_of_nine_compute(info: ReversalInfo) -> f32 {
-     match info.alignment {
-        Alignment::Conjunct => {
-          match info.reversal_type {
-            Reversal::RangeHigh => {
-              Alignment::normalize((info.reversal_angle.sqrt() - 2.0).powi(2))
-            },
-            Reversal::RangeLow => {
-              Alignment::normalize((info.reversal_angle.sqrt() + 2.0).powi(2))
-            }
-          }
-        },
-        Alignment::Opposite => {
-          match info.reversal_type {
-            Reversal::RangeHigh => {
-              Alignment::normalize((info.reversal_angle.sqrt() - 1.0).powi(2))
-            },
-            Reversal::RangeLow => {
-              Alignment::normalize((info.reversal_angle.sqrt() + 1.0).powi(2))
-            }
-          }
-        },
-        Alignment::Trine => {
-          match info.reversal_type {
-            Reversal::RangeHigh => {
-              Alignment::normalize((info.reversal_angle.sqrt() - 2.0/3.0).powi(2))
-            },
-            Reversal::RangeLow => {
-              Alignment::normalize((info.reversal_angle.sqrt() + 2.0/3.0).powi(2))
-            }
-          }
-        },
-        Alignment::Square => {
-          match info.reversal_type {
-            Reversal::RangeHigh => {
-              Alignment::normalize((info.reversal_angle.sqrt() - 0.5).powi(2))
-            },
-            Reversal::RangeLow => {
-              Alignment::normalize((info.reversal_angle.sqrt() + 0.5).powi(2))
-            }
-          }
-        },
-        Alignment::Quintile => {
-          match info.reversal_type {
-            Reversal::RangeHigh => {
-              Alignment::normalize((info.reversal_angle.sqrt() - 2.0/5.0).powi(2))
-            },
-            Reversal::RangeLow => {
-              Alignment::normalize((info.reversal_angle.sqrt() + 2.0/5.0).powi(2))
-            }
-          }
-        },
-        Alignment::Sextile => {
-          match info.reversal_type {
-            Reversal::RangeHigh => {
-              Alignment::normalize((info.reversal_angle.sqrt() - 2.0/6.0).powi(2))
-            },
-            Reversal::RangeLow => {
-              Alignment::normalize((info.reversal_angle.sqrt() + 2.0/6.0).powi(2))
-            }
-          }
-        }
-     }
   }
 }
 

@@ -26,6 +26,7 @@ pub async fn planetary_matrix(
   origin: Origin,
   start_time: &Time,
   period_days: i64,
+  alignment_margin_error: f32,
 ) -> PlanetMatrix {
   let planets = vec![
     Planet::Sun,
@@ -64,7 +65,7 @@ pub async fn planetary_matrix(
         (_, planet_b_ra)
       ) in planet_a_alignments.iter().zip(planet_b_alignments.iter()) {
         let angle = (planet_a_ra - planet_b_ra).abs();
-        let alignment = Alignment::find_alignment(*planet_a_ra, *planet_b_ra, 2.0);
+        let alignment = Alignment::find_alignment(*planet_a_ra, *planet_b_ra, alignment_margin_error);
         if let Some(alignment) = alignment {
           vec.push((*time, angle, alignment));
         }
@@ -74,55 +75,6 @@ pub async fn planetary_matrix(
     }
   }
   matrix
-}
-
-/// Compute dates of lunar phases
-pub async fn lunar_phases(period_days: i64, start_time: Time) -> Vec<(Time, f32, Alignment)> {
-  let moon = Query::query(
-    Origin::Geocentric,
-    &Planet::Moon,
-    DataType::RightAscension,
-    start_time,
-    period_days
-  ).await;
-  let sun = Query::query(
-    Origin::Geocentric,
-    &Planet::Sun,
-    DataType::RightAscension,
-    start_time,
-    period_days
-  ).await;
-
-  let mut vec: Vec<(Time, f32, Alignment)> = Vec::new();
-  for (
-    (moon_time, moon_ra),
-    (_, sun_ra)
-  ) in moon.iter().zip(sun.iter()) {
-    let angle = (moon_ra - sun_ra).abs();
-
-    let alignment = Alignment::find_alignment(*moon_ra, *sun_ra, 7.0);
-    if let Some(alignment) = alignment {
-      match alignment {
-        Alignment::Conjunct => {
-          println!("{:?}", moon_time.as_string());
-          println!("\t {}°, New Moon", angle);
-          vec.push((*moon_time, angle, alignment));
-        },
-        Alignment::Opposite => {
-          println!("{:?}", moon_time.as_string());
-          println!("\t {}°, Full Moon", angle);
-          vec.push((*moon_time, angle, alignment));
-        },
-        Alignment::Square => {
-          println!("{:?}", moon_time.as_string());
-          println!("\t {}°, Quarter", angle);
-          vec.push((*moon_time, angle, alignment));
-        },
-        _ => {}
-      }
-    }
-  }
-  vec
 }
 
 /// Compute lunar declination

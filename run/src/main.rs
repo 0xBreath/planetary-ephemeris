@@ -1,9 +1,7 @@
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use log::{debug, LevelFilter};
 use simplelog::{
-  ColorChoice, Config, TermLogger, TerminalMode,
+  ColorChoice, Config, TerminalMode, TermLogger,
 };
 use ephemeris::*;
 use time_series::*;
@@ -21,8 +19,10 @@ async fn main() {
     -1500,
     1.0,
     10,
-    0.015
+    0.01
   ).await;
+  println!("----------------------------------------------------------------------------------------");
+  test_market_structure();
 }
 
 pub fn init_logger() {
@@ -72,16 +72,50 @@ pub async fn test_lunar_declination() {
   }
 }
 
+pub fn test_market_structure() {
+let candle_range: usize = 10;
+  let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
+  let market_structure = MarketStructure::new(ticker_data, candle_range);
+
+  match &market_structure.latest_high {
+    Some(high) => println!("Latest High: {}", high.date.as_string()),
+    None => println!("Latest High: None"),
+  };
+  match &market_structure.latest_low {
+    Some(low) => println!("Latest Low: {}", low.date.as_string()),
+    None => println!("Latest Low: None"),
+  };
+  println!("START\t\tEND\t\tREVERSAL\t\tTREND");
+  for trend in market_structure.trends.iter() {
+    match &trend.start_candle {
+      Some(candle) => print!("{}", candle.date.as_string()),
+      None => print!("None"),
+    };
+    match &trend.end_candle {
+      Some(candle) => print!("\t{}", candle.date.as_string()),
+      None => print!("\tNone\t"),
+    };
+    match &trend.reversal {
+      Some(reversal) => print!("\t{}\t\t", reversal.candle.date.as_string()),
+      None => print!("\tNone\t\t"),
+    };
+    print!("{:?}", trend.direction.as_ref());
+    println!();
+  }
+}
+
 pub async fn test_planetary_matrix() {
   let candle_range: usize = 10;
   let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
   let local_highs = ticker_data.find_local_highs(candle_range);
   let local_lows = ticker_data.find_local_lows(candle_range);
 
+  let alignment_margin_error = 1.5;
   let matrix = ephemeris::planetary_matrix(
     Origin::Geocentric,
     &Time::today(),
     -365,
+    alignment_margin_error
   ).await;
   for (planet_a, planet_b, alignments) in matrix.into_iter() {
     if !alignments.is_empty() {
@@ -193,63 +227,19 @@ pub fn test_square_of_nine() {
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct Backtest {
-  planet: Option<Planet>,
-  harmonic: Option<f32>,
-  win_count: u64,
-  total_count: u64,
-  win_rate: f64,
-}
-impl Backtest {
-  pub fn new() -> Backtest {
-    Backtest {
-      planet: None,
-      harmonic: None,
-      win_count: 0,
-      total_count: 0,
-      win_rate: 0.0,
-    }
-  }
-  pub fn increment_win_count(&mut self) {
-    self.win_count += 1;
-    self.set_win_rate();
-  }
-  pub fn increment_total_count(&mut self) {
-    self.total_count += 1;
-    self.set_win_rate();
-  }
-  fn set_win_rate(&mut self) {
-    self.win_rate = self.win_count as f64 / self.total_count as f64;
-  }
-  pub fn get_win_rate(&self) -> f64 {
-    self.win_rate
-  }
-  pub fn get_planet(&self) -> Option<Planet> {
-    self.planet.clone()
-  }
-  pub fn set_planet(&mut self, planet: Planet) {
-    self.planet = Some(planet);
-  }
-  pub fn get_harmonic(&self) -> Option<f32> {
-    self.harmonic
-  }
-  pub fn set_harmonic(&mut self, harmonic: f32) {
-    self.harmonic = Some(harmonic);
-  }
-}
-
-/// Identify all dates where the price longitude on a Square of Nine equals the longitude of all possible planets (includeing Sun and Moon)
+/// Identify all dates where the price longitude on a Square of Nine equals the longitude of all possible planets (including Sun and Moon)
 /// Backtest the Time=Price against actual reversals in the market
 /// Compute win rate each planet longitude (time) and price longitude (price) for a all possible harmonics (90, 120, 180, etc)
 /// Return matrix of all possibilities of (planet, harmonic, win rate), and print results to file.
 pub async fn price_planet_harmonics(time_period: i64, square_of_nine_step: f64, reversal_candle_range: usize, margin_of_error: f64) {
   let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
-  let mut local_highs = ticker_data.find_local_highs(reversal_candle_range);
-  let mut local_lows = ticker_data.find_local_lows(reversal_candle_range);
-  let mut reversals = Vec::new();
-  reversals.append(&mut local_highs);
-  reversals.append(&mut local_lows);
+  let market_structure = MarketStructure::new(ticker_data, reversal_candle_range);
+  let reversals = market_structure.reversals.clone();
+  // let mut local_highs = ticker_data.find_local_highs(reversal_candle_range);
+  // let mut local_lows = ticker_data.find_local_lows(reversal_candle_range);
+  // let mut reversals = Vec::new();
+  // reversals.append(&mut local_highs);
+  // reversals.append(&mut local_lows);
 
   let dimension = 271;
   let origin = 1;
@@ -268,7 +258,7 @@ pub async fn price_planet_harmonics(time_period: i64, square_of_nine_step: f64, 
     Planet::Pluto,
   ];
 
-  let mut backtest_matrix = vec![vec![Backtest::new(); 16]; planets.len()];
+  let mut backtest_matrix = vec![vec![Backtest::default(); 16]; planets.len()];
 
   for (index, planet) in planets.iter().enumerate() {
     let daily_longitudes = Query::query(
@@ -280,253 +270,53 @@ pub async fn price_planet_harmonics(time_period: i64, square_of_nine_step: f64, 
     ).await;
 
     for (time, angle) in daily_longitudes.into_iter() {
-      // conjunction
-      match win_rate_of_signal(&square_of_nine, time, angle, 0.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][0].increment_win_count();
-          }
-          backtest_matrix[index][0].increment_total_count();
-          backtest_matrix[index][0].set_planet(planet.clone());
-          backtest_matrix[index][0].set_harmonic(0.0);
-        },
-      };
-      // opposition
-      match win_rate_of_signal(&square_of_nine, time, angle, 180.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][1].increment_win_count();
-          }
-          backtest_matrix[index][1].increment_total_count();
-          backtest_matrix[index][1].set_planet(planet.clone());
-          backtest_matrix[index][1].set_harmonic(180.0);
-        },
-      };
-      // square 90
-      match win_rate_of_signal(&square_of_nine, time, angle, 90.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][2].increment_win_count();
-          }
-          backtest_matrix[index][2].increment_total_count();
-          backtest_matrix[index][2].set_planet(planet.clone());
-          backtest_matrix[index][2].set_harmonic(90.0);
-        },
-      };
-      // square 270
-      match win_rate_of_signal(&square_of_nine, time, angle, 270.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][3].increment_win_count();
-          }
-          backtest_matrix[index][3].increment_total_count();
-          backtest_matrix[index][3].set_planet(planet.clone());
-          backtest_matrix[index][3].set_harmonic(270.0);
-        },
-      };
-      // trine 120
-      match win_rate_of_signal(&square_of_nine, time, angle, 120.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][4].increment_win_count();
-          }
-          backtest_matrix[index][4].increment_total_count();
-          backtest_matrix[index][4].set_planet(planet.clone());
-          backtest_matrix[index][4].set_harmonic(120.0);
-        },
-      };
-      // trine 240
-      match win_rate_of_signal(&square_of_nine, time, angle, 240.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][5].increment_win_count();
-          }
-          backtest_matrix[index][5].increment_total_count();
-          backtest_matrix[index][5].set_planet(planet.clone());
-          backtest_matrix[index][5].set_harmonic(240.0);
-        },
-      };
-      // octile 45
-      match win_rate_of_signal(&square_of_nine, time, angle, 45.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][6].increment_win_count();
-          }
-          backtest_matrix[index][6].increment_total_count();
-          backtest_matrix[index][6].set_planet(planet.clone());
-          backtest_matrix[index][6].set_harmonic(45.0);
-        },
-      };
-      // octile 135
-      match win_rate_of_signal(&square_of_nine, time, angle, 135.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][7].increment_win_count();
-          }
-          backtest_matrix[index][7].increment_total_count();
-          backtest_matrix[index][7].set_planet(planet.clone());
-          backtest_matrix[index][7].set_harmonic(135.0);
-        },
-      };
-      // octile 225
-      match win_rate_of_signal(&square_of_nine, time, angle, 225.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][8].increment_win_count();
-          }
-          backtest_matrix[index][8].increment_total_count();
-          backtest_matrix[index][8].set_planet(planet.clone());
-          backtest_matrix[index][8].set_harmonic(225.0);
-        },
-      };
-      // octile 315
-      match win_rate_of_signal(&square_of_nine, time, angle, 315.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][9].increment_win_count();
-          }
-          backtest_matrix[index][9].increment_total_count();
-          backtest_matrix[index][9].set_planet(planet.clone());
-          backtest_matrix[index][9].set_harmonic(315.0);
-        },
-      };
-      // sextile 60
-      match win_rate_of_signal(&square_of_nine, time, angle, 60.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][10].increment_win_count();
-          }
-          backtest_matrix[index][10].increment_total_count();
-          backtest_matrix[index][10].set_planet(planet.clone());
-          backtest_matrix[index][10].set_harmonic(60.0);
-        },
-      };
-      // sextile 300
-      match win_rate_of_signal(&square_of_nine, time, angle, 300.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][11].increment_win_count();
-          }
-          backtest_matrix[index][11].increment_total_count();
-          backtest_matrix[index][11].set_planet(planet.clone());
-          backtest_matrix[index][11].set_harmonic(300.0);
-        },
-      };
-      // quintile 72
-      match win_rate_of_signal(&square_of_nine, time, angle, 72.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][12].increment_win_count();
-          }
-          backtest_matrix[index][12].increment_total_count();
-          backtest_matrix[index][12].set_planet(planet.clone());
-          backtest_matrix[index][12].set_harmonic(72.0);
-        },
-      };
-      // quintile 144
-      match win_rate_of_signal(&square_of_nine, time, angle, 144.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][13].increment_win_count();
-          }
-          backtest_matrix[index][13].increment_total_count();
-          backtest_matrix[index][13].set_planet(planet.clone());
-          backtest_matrix[index][13].set_harmonic(144.0);
-        },
-      };
-      // quintile 216
-      match win_rate_of_signal(&square_of_nine, time, angle, 216.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][14].increment_win_count();
-          }
-          backtest_matrix[index][14].increment_total_count();
-          backtest_matrix[index][14].set_planet(planet.clone());
-          backtest_matrix[index][14].set_harmonic(216.0);
-        },
-      };
-      // quintile 288
-      match win_rate_of_signal(&square_of_nine, time, angle, 288.0, reversals.clone(), margin_of_error) {
-        None => debug!("None"),
-        Some(points) => {
-          if points.len() > 0 {
-            backtest_matrix[index][15].increment_win_count();
-          }
-          backtest_matrix[index][15].increment_total_count();
-          backtest_matrix[index][15].set_planet(planet.clone());
-          backtest_matrix[index][15].set_harmonic(288.0);
-        },
-      };
+      for harmonic_index in 0..16 {
+        let angle_diff = match harmonic_index {
+          0 => 0.0,
+          1 => 180.0,
+          2 => 90.0,
+          3 => 270.0,
+          4 => 120.0,
+          5 => 240.0,
+          6 => 45.0,
+          7 => 135.0,
+          8 => 225.0,
+          9 => 315.0,
+          10 => 60.0,
+          11 => 300.0,
+          12 => 72.0,
+          13 => 144.0,
+          14 => 216.0,
+          15 => 288.0,
+          _ => panic!("Invalid index"),
+        };
+        let reversal_candles = reversals.iter().map(|reversal| &reversal.candle).collect::<Vec<&Candle>>();
+        match win_rate_of_signal(&square_of_nine, time, angle, angle_diff, reversal_candles, margin_of_error) {
+          None => debug!("None"),
+          Some(points) => {
+            if !points.is_empty() {
+              backtest_matrix[index][harmonic_index].increment_win_count();
+            }
+            backtest_matrix[index][harmonic_index].increment_total_count();
+            backtest_matrix[index][harmonic_index].set_planet(planet.clone());
+            backtest_matrix[index][harmonic_index].set_harmonic(angle_diff);
+          },
+        };
+      }
     }
   }
 
   // write results to console and file
-  println!("Number of Reversals in last {} days: {}\r", time_period, reversals.len());
-  println!("Reversal defined by price extreme of +/- the adjacent {} candles", reversal_candle_range);
-  println!("Margin of Error within actual reversal candle close: {}%", (margin_of_error * 100.0));
-  println!("Square of Nine step interval: {}", square_of_nine_step);
-  let result_file_buf = &PathBuf::from(RESULTS_PATH);
-  let mut file = File::create(result_file_buf).unwrap();
-  let _ = file.write(format!("Number of Reversals in last {} days: {}\r", time_period, reversals.len()).as_bytes())
-    .expect("Unable to write to file");
-  let _ = file.write(format!("Reversal defined by price extreme of +/- the adjacent {} candles\r", reversal_candle_range).as_bytes())
-    .expect("Unable to write to file");
-  let _ = file.write(format!("Margin of Error within actual reversal candle close: {}%\r", (margin_of_error * 100.0)).as_bytes())
-    .expect("Unable to write to file");
-  let _ = file.write(format!("Square of Nine step interval: {}\r", square_of_nine_step).as_bytes())
-    .expect("Unable to write to file");
-
-  for (index, planet) in backtest_matrix.iter().enumerate() {
-    println!();
-    println!("{:?}", planets[index].to_str());
-    let _ = file.write(format!("{:?}\r", planets[index].to_str()).to_string().as_bytes()).expect("Unable to write to file");
-    for backtest in planet.iter() {
-      if let Some(harmonic) = backtest.get_harmonic() {
-        // println!(
-        //   "\tHarmonic: {:?}\t\tWin Rate: {:?}%\t\tWin Count: {:?}\t\tTotal Count: {:?}",
-        //   harmonic.round(),
-        //   (backtest.get_win_rate() * 100.0).round(),
-        //   backtest.win_count,
-        //   backtest.total_count
-        // );
-        println!(
-          "\tHarmonic: {:?}\t\tWin Rate: {:?}%",
-          harmonic.round(),
-          (backtest.get_win_rate() * 100.0).round()
-        );
-        let _ = file.write(format!(
-          "\tHarmonic: {:?}\t\tWin Rate: {:?}%\r",
-          harmonic.round(),
-          (backtest.get_win_rate() * 100.0).round()
-        ).to_string().as_bytes()).expect("Unable to write to file");
-      }
-    }
-  }
-  println!("\r
-      The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
-      and been within {}% of entering a trade at the close of that reversal candle.\r
-      When and where almost perfectly sniped.\r", (margin_of_error * 100.0)
+  let results_file = &PathBuf::from(RESULTS_PATH);
+  market_structure.print(
+    results_file,
+    time_period,
+    reversal_candle_range,
+    margin_of_error,
+    square_of_nine_step,
+    &planets,
+    &backtest_matrix
   );
-  let _ = file.write(format!("\r
-      The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
-      and been within {}% of entering a trade at the close of that reversal candle.\r
-      When and where almost perfectly sniped.\r", (margin_of_error * 100.0)).as_bytes()
-  ).expect("Unable to write to file");
 }
 
 /// Identify all Square of Nine prices at the harmonic relative to a planet: `planet_angle + angle_diff`.
@@ -536,7 +326,7 @@ pub fn win_rate_of_signal(
   date: Time,
   planet_angle: f32,
   angle_diff: f32,
-  reversals: Vec<Candle>,
+  reversals: Vec<&Candle>,
   margin_of_error: f64
 ) -> Option<Vec<Point>> {
   let price_equals_time = square_of_nine.find_price_equals_time(planet_angle + angle_diff);
@@ -547,7 +337,7 @@ pub fn win_rate_of_signal(
 /// Search vector of price reversals for reversal on date.
 /// Search SquareOfNine price longitudes for price on date of reversal.
 /// Return Vector of SquareOfNine Points that align with price reversals on date, date, and win rate
-pub fn compare_signals(price_reversals: Vec<Candle>, harmonic_points: Vec<Point>, harmonic_date: Time, margin_of_error: f64) -> Option<Vec<Point>> {
+pub fn compare_signals(price_reversals: Vec<&Candle>, harmonic_points: Vec<Point>, harmonic_date: Time, margin_of_error: f64) -> Option<Vec<Point>> {
   let reversal_candle = get_reversal_at_date(price_reversals, harmonic_date);
 
   // reversal candle found on date
@@ -567,11 +357,6 @@ pub fn compare_signals(price_reversals: Vec<Candle>, harmonic_points: Vec<Point>
 }
 
 /// Search vector of price reversals for reversal on date.
-pub fn get_reversal_at_date(reversals: Vec<Candle>, date: Time) -> Option<Candle> {
-  for reversal in reversals.iter() {
-    if date.as_string() == reversal.date.as_string() {
-      return Some(reversal.clone());
-    }
-  }
-  None
+pub fn get_reversal_at_date(reversals: Vec<&Candle>, date: Time) -> Option<&Candle> {
+  reversals.into_iter().find(|&candle| date.as_string() == candle.date.as_string())
 }
