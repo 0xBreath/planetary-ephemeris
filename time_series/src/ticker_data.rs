@@ -149,7 +149,8 @@ impl TickerData {
       if index < candle_range || index + 10 > self.candles.len() - 1 {
         continue;
       }
-      let range = &self.candles[index - candle_range..index + candle_range];
+      // let range = &self.candles[index - candle_range..index + candle_range];
+      let range = &self.candles[index..index + candle_range];
       let mut min_candle: &Candle = range.get(0).unwrap();
       let mut max_candle: &Candle = range.get(0).unwrap();
       for (index, candle) in range.iter().enumerate() {
@@ -182,22 +183,12 @@ impl TickerData {
     reversals
   }
 
-  /// Compute volatility for a candle.
-  /// Returns a ratio (percentage / 100).
-  pub fn candle_volatility(candle: &Candle) -> f64 {
-    if candle.high > candle.low {
-      candle.high / candle.low
-    } else {
-      candle.low / candle.high
-    }
-  }
-
-  /// Compute mean volatility for candles.
+  /// Compute mean candle close.
   /// Returns mean as ratio (percentage / 100).
-  pub fn mean_volatility_candles(&self) -> Option<f64> {
+  pub fn mean(&self) -> Option<f64> {
     let mut sum_spans = 0.0;
     for candle in self.candles.iter() {
-      sum_spans += Self::candle_volatility(candle);
+      sum_spans += candle.close;
     }
     match self.candles.len() {
       positive if positive > 0 => Some(sum_spans / self.candles.len() as f64),
@@ -205,11 +196,11 @@ impl TickerData {
     }
   }
 
-  /// Compute standard deviation volatility for candles.
+  /// Compute standard deviation for candle closes.
   /// Returns std dev as ratio (percentage / 100).
-  fn std_dev_volatility_candles(&self) -> Option<f64> {
+  fn std_dev(&self) -> Option<f64> {
     if !self.candles.is_empty() {
-      match self.mean_volatility_candles() {
+      match self.mean() {
         Some(mean_vol) => {
           let variance = self.candles.iter().map(|candle| {
             let diff = mean_vol - ((candle.high / candle.low) as f64);
@@ -225,15 +216,14 @@ impl TickerData {
     }
   }
 
-  /// Compute Z-Score volatility for a candle.
-  /// Z-Score is the number of standard deviations a candle's volatility spans away from the mean of the data set.
-  /// >2 standard deviations is significant. 3 is extreme.
-  pub fn candles_z_score_volatility(&self, candle: &Candle) -> Option<f64> {
+  /// Compute Z-Score for a candle close.
+  /// Z-Score is the number of standard deviations a candle's close spans away from the mean of the data set.
+  /// >3 standard deviations is significant.
+  pub fn z_score(&self, candle: &Candle) -> Option<f64> {
     if !self.candles.is_empty() {
-      let mean = self.mean_volatility_candles().expect("Mean volatility is not defined");
-      let std_dev = self.std_dev_volatility_candles().expect("Std dev volatility is not defined");
-      let candle_vol = Self::candle_volatility(candle);
-      let z_score = candle_vol - mean / std_dev;
+      let mean = self.mean().expect("Mean is not defined");
+      let std_dev = self.std_dev().expect("Std dev is not defined");
+      let z_score = (candle.close - mean) / std_dev;
       Some(z_score)
     } else {
       None

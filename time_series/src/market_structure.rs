@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use ephemeris::{Planet, Time};
-use crate::{Backtest, Candle, Reversal, ReversalType, TickerData};
+use crate::{Backtest, Candle, Reversal, ReversalType, SquareOfNine, TickerData};
 
 #[derive(Debug, Clone)]
 pub enum Direction {
@@ -241,13 +241,17 @@ impl MarketStructure {
     margin_of_error: f64,
     square_of_nine_step: f64,
     planets: &[Planet],
-    backtest_matrix: &[Vec<Backtest>]
+    backtest_matrix: &[Vec<Backtest>],
+    square_of_nine: &SquareOfNine
   ) {
     // write results to console and file
     println!("Number of Reversals in last {} days: {}\r", time_period, self.reversals.len());
     println!("Reversal defined by price extreme of +/- the adjacent {} candles", reversal_candle_range);
     println!("Margin of Error within actual reversal candle close: {}%", (margin_of_error * 100.0));
     println!("Square of Nine step interval: {}", square_of_nine_step);
+    println!("Ring Size at 15001: {}", square_of_nine.ring_size_of_cell_value(10001.0).expect("failed to get ring size"));
+    println!("Ring Size at 30001: {}", square_of_nine.ring_size_of_cell_value(30001.0).expect("failed to get ring size"));
+    println!("Ring Size at 60001: {}", square_of_nine.ring_size_of_cell_value(60001.0).expect("failed to get ring size"));
     let mut file = File::create(results_file).unwrap();
     let _ = file.write(format!("Number of Reversals in last {} days: {}\r", time_period, self.reversals.len()).as_bytes())
       .expect("Unable to write to file");
@@ -257,6 +261,18 @@ impl MarketStructure {
       .expect("Unable to write to file");
     let _ = file.write(format!("Square of Nine step interval: {}\r", square_of_nine_step).as_bytes())
       .expect("Unable to write to file");
+    let _ = file.write(format!(
+      "Square of Nine ring size at 10001: {}\r",
+      square_of_nine.ring_size_of_cell_value(10001.0).expect("failed to get ring size")
+    ).as_bytes()).expect("Unable to write to file");
+    let _ = file.write(format!(
+      "Square of Nine ring size at 30001: {}\r",
+      square_of_nine.ring_size_of_cell_value(30001.0).expect("failed to get ring size")
+    ).as_bytes()).expect("Unable to write to file");
+    let _ = file.write(format!(
+      "Square of Nine ring size at 60001: {}\r",
+      square_of_nine.ring_size_of_cell_value(60001.0).expect("failed to get ring size")
+    ).as_bytes()).expect("Unable to write to file");
 
     for (index, planet) in backtest_matrix.iter().enumerate() {
       println!();
@@ -328,14 +344,14 @@ impl MarketStructure {
     println!("
       The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
       and been within {}% of entering a trade at the close of that reversal candle.\r
-      Backtest is for BTCUSD {} days from today {}.\r
-      When and where almost perfectly sniped.\r", (margin_of_error * 100.0), time_period, Time::today().as_string()
+      Backtest is for BTCUSD {} days from today {}.\r",
+     (margin_of_error * 100.0), time_period, Time::today().as_string()
     );
     let _ = file.write(format!("\n
       The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
       and been within {}% of entering a trade at the close of that reversal candle.\r
-      Backtest is for BTCUSD {} days from today {}.\r
-      When and where almost perfectly sniped.\r", (margin_of_error * 100.0), time_period, Time::today().as_string()).as_bytes()
+      Backtest is for BTCUSD {} days from today {}.\r",
+     (margin_of_error * 100.0), time_period, Time::today().as_string()).as_bytes()
     ).expect("Unable to write to file");
   }
 

@@ -9,7 +9,7 @@ use time_series::*;
 use toolkit::*;
 
 pub const TICKER_DATA_PATH: &str = "BTCUSD.csv";
-pub const RESULTS_PATH: &str = "BTCUSD_results.csv";
+pub const RESULTS_PATH: &str = "BTCUSD_results.txt";
 
 #[tokio::main]
 async fn main() {
@@ -18,27 +18,27 @@ async fn main() {
   // println!("\t\t### PLANET PAIR ALIGNMENT MATRIX ###\t\t");
   // PlanetMatrix::test_planet_matrix(
   //   &PathBuf::from(TICKER_DATA_PATH),
-  //   2,
-  //   1.5,
+  //   1,
+  //   1.0,
   //   10
   // ).await;
-  // println!("\t\t### LUNAR ZERO DECLINATION CROSS ###\t\t");
-  // LunarDeclination::test_lunar_declination(-720, Time::today(), 10).await;
   // println!("----------------------------------------------------------------------------------------");
+  // println!("\t\t### LUNAR ZERO DECLINATION CROSS ###\t\t");
+  // LunarDeclination::test_lunar_declination(-720, Time::today(), 10, 1).await;
   // println!("----------------------------------------------------------------------------------------");
   // println!("\t\t### SQUARE OF NINE ###\t\t");
-  // test_square_of_nine();
+  // SquareOfNine::test_square_of_nine();
   // println!("----------------------------------------------------------------------------------------");
-  println!("\t\t### IDENTIFY MARKET STRUCTURE ###\t\t");
-  MarketStructure::test_market_structure(10, &PathBuf::from(TICKER_DATA_PATH));
+  // println!("\t\t### IDENTIFY MARKET STRUCTURE ###\t\t");
+  // MarketStructure::test_market_structure(5, &PathBuf::from(TICKER_DATA_PATH));
   // println!("----------------------------------------------------------------------------------------");
-  // println!("\t\t### PRICE PLANET HARMONICS ###\t\t");
-  // price_planet_harmonics(
-  //   200.0,
-  //   10,
-  //   0.01,
-  //   0
-  // ).await;
+  println!("\t\t### PRICE PLANET HARMONICS ###\t\t");
+  price_planet_harmonics(
+    100.0,
+    10,
+    0.01,
+    0
+  ).await;
 }
 
 pub fn init_logger() {
@@ -61,26 +61,15 @@ pub async fn price_planet_harmonics(square_of_nine_step: f64, reversal_candle_ra
   if ticker_data.candles.is_empty() {
     return
   }
-  let earliest_candle_date = &ticker_data.get_candles()[0].date;
+  //let earliest_candle_date = &ticker_data.get_candles()[0].date;
   //let time_period = Time::today().diff_days(earliest_candle_date);
-  let time_period = -500;
+  let time_period = -730;
   println!("Time Period: {} days from today {}", time_period, Time::today().as_string());
 
   // TODO: param for max SquareOfNine value -> determines dimension internally
   let dimension = 2001;
   let origin = 1;
   let square_of_nine = SquareOfNine::new(origin, square_of_nine_step, dimension);
-
-  // let angle = 36.0;
-  // let range_min = 359.0;
-  // let range_max = 1.0;
-  // if range_min < range_max {
-  //   if angle >= range_min && angle < range_max {
-  //     println!("ALPHA");
-  //   }
-  // } else if (range_min > range_max && angle >= range_min && angle < 360.0) || (range_min > range_max && angle < range_max && angle >= 0.0) {
-  //   println!("BRAVO");
-  // }
 
   let planets = vec![
     Planet::Sun,
@@ -111,6 +100,9 @@ pub async fn price_planet_harmonics(square_of_nine_step: f64, reversal_candle_ra
     ).await;
 
     for (time, angle) in daily_longitudes.into_iter() {
+      // TODO: counter and Vec<&Backtest> for signals that occurred on this date
+      // TODO: if counter > 1, update win count for each Backtest
+      // TODO: result is signal occurs when two or more harmonics align on the same candle
       for (harmonic_index, angle_diff) in harmonics.iter().enumerate() {
         // find all prices at angle on the SquareOfNine
         let angle = angle_safe_increment(angle, *angle_diff);
@@ -127,13 +119,6 @@ pub async fn price_planet_harmonics(square_of_nine_step: f64, reversal_candle_ra
 
         // signal occurred
         if let Some(harmonic_price_on_date) = harmonic_price_on_date {
-          debug!(
-            "Price: {}\tTime: {}\tRing Size: {:?}",
-            harmonic_price_on_date.value,
-            time.as_string(),
-            square_of_nine.ring_size_of_cell_value(harmonic_price_on_date.value)
-          );
-
           // returns Some if true positive signal, None if false positive signal
           let backtested_signal: Option<Candle> = backtest_signal(
             &reversal_candles,
@@ -162,7 +147,8 @@ pub async fn price_planet_harmonics(square_of_nine_step: f64, reversal_candle_ra
     error_margin_price,
     square_of_nine_step,
     &planets,
-    &backtest_matrix
+    &backtest_matrix,
+    &square_of_nine
   );
 }
 

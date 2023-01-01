@@ -1,0 +1,185 @@
+Number of Reversals in last -730 days: 1220Reversal defined by price extreme of +/- the adjacent 10 candlesMargin of Error within actual reversal candle close: 1%Square of Nine step interval: 100Square of Nine ring size at 10001: 4400Square of Nine ring size at 30001: 7300Square of Nine ring size at 60001: 10200
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Sun		0.0			37.0%		64			174
+Sun		180.0		35.0%		56			162
+Sun		120.0		24.0%		40			164
+Sun		240.0		37.0%		72			194
+Sun		90.0		40.0%		72			182
+Sun		270.0		45.0%		71			158
+Sun		72.0		35.0%		67			194
+Sun		144.0		36.0%		58			163
+Sun		216.0		39.0%		75			193
+Sun		288.0		39.0%		64			163
+Sun		60.0		34.0%		64			186
+Sun		300.0		38.0%		66			175
+Sun		45.0		39.0%		70			178
+Sun		135.0		32.0%		51			158
+Sun		225.0		36.0%		66			182
+Sun		315.0		29.0%		54			187
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Moon		0.0			28.0%		42			151
+Moon		180.0		38.0%		69			181
+Moon		120.0		41.0%		77			190
+Moon		240.0		36.0%		69			193
+Moon		90.0		35.0%		60			172
+Moon		270.0		33.0%		59			179
+Moon		72.0		42.0%		61			144
+Moon		144.0		41.0%		75			183
+Moon		216.0		34.0%		62			180
+Moon		288.0		33.0%		60			181
+Moon		60.0		37.0%		57			154
+Moon		300.0		37.0%		70			187
+Moon		45.0		33.0%		52			156
+Moon		135.0		42.0%		80			191
+Moon		225.0		34.0%		61			181
+Moon		315.0		42.0%		73			173
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Mercury		0.0			33.0%		59			181
+Mercury		180.0		39.0%		72			183
+Mercury		120.0		35.0%		51			146
+Mercury		240.0		39.0%		73			186
+Mercury		90.0		33.0%		66			198
+Mercury		270.0		39.0%		70			180
+Mercury		72.0		32.0%		57			178
+Mercury		144.0		35.0%		61			173
+Mercury		216.0		39.0%		68			176
+Mercury		288.0		37.0%		65			174
+Mercury		60.0		35.0%		57			163
+Mercury		300.0		31.0%		55			177
+Mercury		45.0		39.0%		62			161
+Mercury		135.0		33.0%		50			153
+Mercury		225.0		38.0%		66			173
+Mercury		315.0		33.0%		58			178
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Venus		0.0			37.0%		65			175
+Venus		180.0		33.0%		59			177
+Venus		120.0		37.0%		66			177
+Venus		240.0		35.0%		64			185
+Venus		90.0		34.0%		51			151
+Venus		270.0		43.0%		76			178
+Venus		72.0		36.0%		57			160
+Venus		144.0		31.0%		59			193
+Venus		216.0		34.0%		60			176
+Venus		288.0		39.0%		71			182
+Venus		60.0		38.0%		67			176
+Venus		300.0		36.0%		65			183
+Venus		45.0		36.0%		64			176
+Venus		135.0		34.0%		63			186
+Venus		225.0		33.0%		60			181
+Venus		315.0		33.0%		57			171
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Mars		0.0			33.0%		62			188
+Mars		180.0		36.0%		69			193
+Mars		120.0		31.0%		56			181
+Mars		240.0		40.0%		70			174
+Mars		90.0		39.0%		60			152
+Mars		270.0		39.0%		68			175
+Mars		72.0		40.0%		61			154
+Mars		144.0		26.0%		46			174
+Mars		216.0		38.0%		66			172
+Mars		288.0		34.0%		60			176
+Mars		60.0		44.0%		68			156
+Mars		300.0		36.0%		60			167
+Mars		45.0		42.0%		69			165
+Mars		135.0		27.0%		50			184
+Mars		225.0		42.0%		73			175
+Mars		315.0		32.0%		56			175
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Jupiter		0.0			36.0%		60			168
+Jupiter		180.0		32.0%		51			158
+Jupiter		120.0		37.0%		65			175
+Jupiter		240.0		35.0%		57			163
+Jupiter		90.0		37.0%		74			202
+Jupiter		270.0		41.0%		61			147
+Jupiter		72.0		35.0%		73			210
+Jupiter		144.0		35.0%		67			189
+Jupiter		216.0		30.0%		52			173
+Jupiter		288.0		38.0%		56			148
+Jupiter		60.0		35.0%		72			203
+Jupiter		300.0		39.0%		61			155
+Jupiter		45.0		37.0%		73			195
+Jupiter		135.0		35.0%		66			186
+Jupiter		225.0		34.0%		59			173
+Jupiter		315.0		36.0%		64			176
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Saturn		0.0			37.0%		63			171
+Saturn		180.0		31.0%		49			157
+Saturn		120.0		37.0%		74			202
+Saturn		240.0		36.0%		62			172
+Saturn		90.0		33.0%		68			209
+Saturn		270.0		36.0%		57			160
+Saturn		72.0		35.0%		64			183
+Saturn		144.0		37.0%		67			182
+Saturn		216.0		39.0%		57			148
+Saturn		288.0		40.0%		59			146
+Saturn		60.0		37.0%		70			188
+Saturn		300.0		42.0%		65			155
+Saturn		45.0		37.0%		67			182
+Saturn		135.0		36.0%		66			184
+Saturn		225.0		37.0%		61			163
+Saturn		315.0		39.0%		58			148
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Uranus		0.0			34.0%		68			201
+Uranus		180.0		35.0%		56			159
+Uranus		120.0		33.0%		48			147
+Uranus		240.0		38.0%		63			164
+Uranus		90.0		29.0%		46			158
+Uranus		270.0		38.0%		64			170
+Uranus		72.0		37.0%		71			194
+Uranus		144.0		38.0%		63			164
+Uranus		216.0		37.0%		56			150
+Uranus		288.0		36.0%		60			169
+Uranus		60.0		37.0%		67			181
+Uranus		300.0		35.0%		61			174
+Uranus		45.0		37.0%		67			183
+Uranus		135.0		34.0%		55			161
+Uranus		225.0		40.0%		64			162
+Uranus		315.0		33.0%		64			193
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Neptune		0.0			33.0%		60			182
+Neptune		180.0		35.0%		56			159
+Neptune		120.0		36.0%		71			195
+Neptune		240.0		34.0%		52			155
+Neptune		90.0		38.0%		73			194
+Neptune		270.0		39.0%		62			160
+Neptune		72.0		35.0%		77			217
+Neptune		144.0		37.0%		56			152
+Neptune		216.0		35.0%		63			180
+Neptune		288.0		39.0%		64			164
+Neptune		60.0		35.0%		74			214
+Neptune		300.0		41.0%		66			160
+Neptune		45.0		36.0%		73			204
+Neptune		135.0		30.0%		51			171
+Neptune		225.0		33.0%		57			171
+Neptune		315.0		38.0%		64			170
+
+PLANET		ALIGNMENT	WIN RATE	WIN COUNT	TOTAL ALIGNMENTS
+Pluto		0.0			39.0%		64			165
+Pluto		180.0		35.0%		68			196
+Pluto		120.0		35.0%		77			223
+Pluto		240.0		39.0%		62			159
+Pluto		90.0		37.0%		66			180
+Pluto		270.0		35.0%		64			181
+Pluto		72.0		37.0%		75			202
+Pluto		144.0		38.0%		73			193
+Pluto		216.0		32.0%		47			145
+Pluto		288.0		34.0%		56			166
+Pluto		60.0		35.0%		64			183
+Pluto		300.0		37.0%		59			158
+Pluto		45.0		35.0%		59			171
+Pluto		135.0		35.0%		74			211
+Pluto		225.0		33.0%		49			148
+Pluto		315.0		39.0%		60			155
+
+
+      The “win rates” are the odds the algorithm would have known the day a reversal will occur
+      and been within 1% of entering a trade at the close of that reversal candle.
+      Backtest is for BTCUSD -730 days from today 2023-01-01.

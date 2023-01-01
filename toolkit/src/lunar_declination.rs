@@ -33,9 +33,8 @@ impl LunarDeclination {
     Self { zero_declinations }
   }
 
-  pub async fn test_lunar_declination(period_days: i64, start_date: Time, error_margin_days: i64) {
+  pub async fn test_lunar_declination(period_days: i64, start_date: Time, candle_range: usize, error_margin_days: i64) {
     let lunar_declination = LunarDeclination::new(period_days, start_date).await;
-    let candle_range: usize = 10;
     let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
     let reversals = ticker_data.find_reversals(candle_range);
 

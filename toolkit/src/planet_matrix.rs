@@ -3,7 +3,7 @@ use ephemeris::*;
 use time_series::*;
 
 pub const TICKER_DATA_PATH: &str = "BTCUSD.csv";
-pub const RESULTS_PATH: &str = "BTCUSD_results.csv";
+pub const RESULTS_PATH: &str = "BTCUSD_results.txt";
 
 pub type Matrix = Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)>;
 #[derive(Debug, Clone, PartialEq)]

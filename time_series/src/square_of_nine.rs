@@ -416,11 +416,11 @@ impl SquareOfNine {
   /// Return the number of cells in the ring that contains the cell value
   /// Used to determines cell value range for a 360 degree rotation.
   pub fn ring_size_of_cell_value(&self, value: f64) -> Option<u64> {
-    println!("---------------------------------");
     let mut ring_size = None;
     let mut angle = 0.0;
     let mut point_index = 0;
     let mut point_value = 0.0;
+    let mut found = false;
     for (index, point) in self.values.iter().enumerate() {
       if value == point.value {
         match point.arc {
@@ -437,22 +437,25 @@ impl SquareOfNine {
             point_value = point.value;
           }
         }
+        found = true;
         break;
       }
     }
-    for index in (point_index + 1)..self.values.len() {
-      let point = self.values.get(index).expect("Point not found");
-      if let Some(arc) = point.arc {
-        if arc.0 < arc.1 {
-          if angle >= arc.0 && angle < arc.1 {
+    if found {
+      for index in (point_index + 1)..self.values.len() {
+        let point = self.values.get(index).expect("Point not found");
+        if let Some(arc) = point.arc {
+          if arc.0 < arc.1 {
+            if angle >= arc.0 && angle < arc.1 {
+              debug!("angle: {:?}, arc: {:?}", angle, arc);
+              ring_size = Some((point.value - point_value) as u64);
+              break;
+            }
+          } else if (arc.0 > arc.1 && angle >= arc.0 && angle < 360.0) || (arc.0 > arc.1 && angle < arc.1 && angle >= 0.0) {
             debug!("angle: {:?}, arc: {:?}", angle, arc);
             ring_size = Some((point.value - point_value) as u64);
             break;
           }
-        } else if (arc.0 > arc.1 && angle >= arc.0 && angle < 360.0) || (arc.0 > arc.1 && angle < arc.1 && angle >= 0.0) {
-          debug!("angle: {:?}, arc: {:?}", angle, arc);
-          ring_size = Some((point.value - point_value) as u64);
-          break;
         }
       }
     }
