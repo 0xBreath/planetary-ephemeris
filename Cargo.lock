@@ -1045,7 +1045,10 @@ name = "toolkit"
 version = "0.1.0"
 dependencies = [
  "ephemeris",
+ "log",
+ "simplelog",
  "time_series",
+ "tokio",
 ]
 
 [[package]]

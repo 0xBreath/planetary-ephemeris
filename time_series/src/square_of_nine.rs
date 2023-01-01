@@ -101,7 +101,9 @@ pub struct SquareOfNine {
   pub matrix: Vec<Vec<Point>>,//[[Point; N]; N],
   /// One-dimensional vector of points in `Square of Nine`.
   /// Used for calculating 'Time=Price' alignments. Not intended for plotting.
-  pub values: Vec<Point>
+  pub values: Vec<Point>,
+  /// Delta between each point in `Square of Nine`.
+  pub step: f64,
 }
 
 impl SquareOfNine {
@@ -305,8 +307,13 @@ impl SquareOfNine {
     Self {
       origin,
       matrix,
-      values
+      values,
+      step
     }
+  }
+  
+  pub fn get_step(&self) -> f64 {
+    self.step
   }
 
   pub fn get_point(&self, x: usize, y: usize) -> Option<&Point> {

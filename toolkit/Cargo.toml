@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 ephemeris = { path = "../ephemeris" }
 time_series = { path = "../time_series" }
+tokio = { version = "1.22.0", features = ["full"] }
+log = "0.4"
+simplelog = "0.12.0"

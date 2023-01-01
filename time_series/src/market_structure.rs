@@ -33,6 +33,7 @@ pub struct MarketStructure {
   pub trends: Vec<Trend>,
   pub latest_high: Option<Candle>,
   pub latest_low: Option<Candle>,
+  pub reversal_candle_range: usize,
 }
 
 impl MarketStructure {
@@ -228,131 +229,9 @@ impl MarketStructure {
       reversals,
       trends,
       latest_high,
-      latest_low
+      latest_low,
+      reversal_candle_range: candle_range
     }
-  }
-
-  #[allow(clippy::too_many_arguments)]
-  pub fn print(
-    &self,
-    results_file: &PathBuf,
-    time_period: i64,
-    reversal_candle_range: usize,
-    margin_of_error: f64,
-    square_of_nine_step: f64,
-    planets: &[Planet],
-    backtest_matrix: &[Vec<Backtest>],
-    square_of_nine: &SquareOfNine
-  ) {
-    // write results to console and file
-    println!("Number of Reversals in last {} days: {}\r", time_period, self.reversals.len());
-    println!("Reversal defined by price extreme of +/- the adjacent {} candles", reversal_candle_range);
-    println!("Margin of Error within actual reversal candle close: {}%", (margin_of_error * 100.0));
-    println!("Square of Nine step interval: {}", square_of_nine_step);
-    println!("Ring Size at 15001: {}", square_of_nine.ring_size_of_cell_value(10001.0).expect("failed to get ring size"));
-    println!("Ring Size at 30001: {}", square_of_nine.ring_size_of_cell_value(30001.0).expect("failed to get ring size"));
-    println!("Ring Size at 60001: {}", square_of_nine.ring_size_of_cell_value(60001.0).expect("failed to get ring size"));
-    let mut file = File::create(results_file).unwrap();
-    let _ = file.write(format!("Number of Reversals in last {} days: {}\r", time_period, self.reversals.len()).as_bytes())
-      .expect("Unable to write to file");
-    let _ = file.write(format!("Reversal defined by price extreme of +/- the adjacent {} candles\r", reversal_candle_range).as_bytes())
-      .expect("Unable to write to file");
-    let _ = file.write(format!("Margin of Error within actual reversal candle close: {}%\r", (margin_of_error * 100.0)).as_bytes())
-      .expect("Unable to write to file");
-    let _ = file.write(format!("Square of Nine step interval: {}\r", square_of_nine_step).as_bytes())
-      .expect("Unable to write to file");
-    let _ = file.write(format!(
-      "Square of Nine ring size at 10001: {}\r",
-      square_of_nine.ring_size_of_cell_value(10001.0).expect("failed to get ring size")
-    ).as_bytes()).expect("Unable to write to file");
-    let _ = file.write(format!(
-      "Square of Nine ring size at 30001: {}\r",
-      square_of_nine.ring_size_of_cell_value(30001.0).expect("failed to get ring size")
-    ).as_bytes()).expect("Unable to write to file");
-    let _ = file.write(format!(
-      "Square of Nine ring size at 60001: {}\r",
-      square_of_nine.ring_size_of_cell_value(60001.0).expect("failed to get ring size")
-    ).as_bytes()).expect("Unable to write to file");
-
-    for (index, planet) in backtest_matrix.iter().enumerate() {
-      println!();
-      println!("PLANET\t\tALIGNMENT\tWIN RATE\tWIN COUNT\tTOTAL ALIGNMENTS");
-      let _ = file.write(format!("\nPLANET\t\tALIGNMENT\tWIN RATE\tWIN COUNT\tTOTAL ALIGNMENTS\n").to_string().as_bytes()).expect("Unable to write to file");
-      for backtest in planet.iter() {
-        if let Some(harmonic) = backtest.get_harmonic() {
-          let win_rate = (backtest.get_win_rate() * 100.0).round();
-          if win_rate == 100.0 {
-            if harmonic < 10.0 {
-              let _ = file.write(format!(
-                "{}\t\t{:?}\t\t\t{:?}%\t{:?}\t\t\t{:?}\n",
-                planets[index].to_str(),
-                harmonic.round(),
-                (backtest.get_win_rate() * 100.0).round(),
-                backtest.get_win_count(),
-                backtest.get_total_count()
-              ).to_string().as_bytes()).expect("Unable to write to file");
-            } else {
-              let _ = file.write(format!(
-                "{}\t\t{:?}\t\t{:?}%\t{:?}\t\t\t{:?}\n",
-                planets[index].to_str(),
-                harmonic.round(),
-                (backtest.get_win_rate() * 100.0).round(),
-                backtest.get_win_count(),
-                backtest.get_total_count()
-              ).to_string().as_bytes()).expect("Unable to write to file");
-            }
-            println!(
-              "{}\t\t{:?}\t\t{:?}%\t{:?}\t\t{:?}",
-              planets[index].to_str(),
-              harmonic.round(),
-              (backtest.get_win_rate() * 100.0).round(),
-              backtest.get_win_count(),
-              backtest.get_total_count()
-            );
-          } else {
-            if harmonic < 10.0 {
-              let _ = file.write(format!(
-                "{}\t\t{:?}\t\t\t{:?}%\t\t{:?}\t\t\t{:?}\n",
-                planets[index].to_str(),
-                harmonic.round(),
-                (backtest.get_win_rate() * 100.0).round(),
-                backtest.get_win_count(),
-                backtest.get_total_count()
-              ).to_string().as_bytes()).expect("Unable to write to file");
-            } else {
-              let _ = file.write(format!(
-                "{}\t\t{:?}\t\t{:?}%\t\t{:?}\t\t\t{:?}\n",
-                planets[index].to_str(),
-                harmonic.round(),
-                (backtest.get_win_rate() * 100.0).round(),
-                backtest.get_win_count(),
-                backtest.get_total_count()
-              ).to_string().as_bytes()).expect("Unable to write to file");
-            }
-            println!(
-              "{}\t\t{:?}\t\t{:?}%\t\t{:?}\t\t{:?}",
-              planets[index].to_str(),
-              harmonic.round(),
-              (backtest.get_win_rate() * 100.0).round(),
-              backtest.get_win_count(),
-              backtest.get_total_count()
-            );
-          }
-        }
-      }
-    }
-    println!("
-      The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
-      and been within {}% of entering a trade at the close of that reversal candle.\r
-      Backtest is for BTCUSD {} days from today {}.\r",
-     (margin_of_error * 100.0), time_period, Time::today().as_string()
-    );
-    let _ = file.write(format!("\n
-      The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
-      and been within {}% of entering a trade at the close of that reversal candle.\r
-      Backtest is for BTCUSD {} days from today {}.\r",
-     (margin_of_error * 100.0), time_period, Time::today().as_string()).as_bytes()
-    ).expect("Unable to write to file");
   }
 
   pub fn test_market_structure(candle_range: usize, results_file: &PathBuf) {
