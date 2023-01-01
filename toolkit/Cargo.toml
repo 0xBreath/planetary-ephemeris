@@ -1,19 +1,10 @@
 [package]
-name = "run"
+name = "toolkit"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[[bin]]
-name = "run"
-path = "src/main.rs"
 
 [dependencies]
-# internal deps
 ephemeris = { path = "../ephemeris" }
 time_series = { path = "../time_series" }
-toolkit = { path = "../toolkit" }
-# external deps
-tokio = { version = "1.22.0", features = ["full"] }
-log = "0.4"
-simplelog = "0.12.0"

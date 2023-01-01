@@ -142,6 +142,27 @@ impl Alignment {
       None
     }
   }
+
+  pub fn iter() -> &'static [Alignment] {
+    &[
+      Alignment::Conjunct,
+      Alignment::Opposite,
+      Alignment::Trine120,
+      Alignment::Trine240,
+      Alignment::Square90,
+      Alignment::Square270,
+      Alignment::Quintile72,
+      Alignment::Quintile144,
+      Alignment::Quintile216,
+      Alignment::Quintile288,
+      Alignment::Sextile60,
+      Alignment::Sextile300,
+      Alignment::Octile45,
+      Alignment::Octile135,
+      Alignment::Octile225,
+      Alignment::Octile315,
+    ]
+  }
 }
 
 impl PartialEq<Self> for Alignment {

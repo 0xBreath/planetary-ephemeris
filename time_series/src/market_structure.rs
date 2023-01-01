@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use csv;
 use ephemeris::{Planet, Time};
 use crate::{Backtest, Candle, Reversal, ReversalType, TickerData};
 
@@ -47,7 +46,6 @@ impl MarketStructure {
     println!("Last Candle: {:?}", ticker_data.candles[ticker_data.candles.len() - 1].date.as_string());
     println!("First Reversal: {:?}", reversals[0].candle.date.as_string());
     println!("Last Reversal: {:?}", reversals[reversals.len() - 1].candle.date.as_string());
-
 
     let mut direction: Option<Direction> = None;
     let mut start_candle: Option<Candle> = None;
@@ -149,7 +147,7 @@ impl MarketStructure {
                     start_candle: start_candle.clone(),
                     end_candle: None,
                     reversal: Some(reversal.clone()),
-                    direction: Some(Direction::Down),
+                    direction: Some(Direction::Up),
                   });
                 }
                 // positive trend ends
@@ -234,6 +232,7 @@ impl MarketStructure {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub fn print(
     &self,
     results_file: &PathBuf,
@@ -241,8 +240,8 @@ impl MarketStructure {
     reversal_candle_range: usize,
     margin_of_error: f64,
     square_of_nine_step: f64,
-    planets: &Vec<Planet>,
-    backtest_matrix: &Vec<Vec<Backtest>>
+    planets: &[Planet],
+    backtest_matrix: &[Vec<Backtest>]
   ) {
     // write results to console and file
     println!("Number of Reversals in last {} days: {}\r", time_period, self.reversals.len());
@@ -261,39 +260,114 @@ impl MarketStructure {
 
     for (index, planet) in backtest_matrix.iter().enumerate() {
       println!();
-      println!("{:?}", planets[index].to_str());
-      let _ = file.write(format!("{:?}\r", planets[index].to_str()).to_string().as_bytes()).expect("Unable to write to file");
+      println!("PLANET\t\tALIGNMENT\tWIN RATE\tWIN COUNT\tTOTAL ALIGNMENTS");
+      let _ = file.write(format!("\nPLANET\t\tALIGNMENT\tWIN RATE\tWIN COUNT\tTOTAL ALIGNMENTS\n").to_string().as_bytes()).expect("Unable to write to file");
       for backtest in planet.iter() {
         if let Some(harmonic) = backtest.get_harmonic() {
-          // println!(
-          //   "\tHarmonic: {:?}\t\tWin Rate: {:?}%\t\tWin Count: {:?}\t\tTotal Count: {:?}",
-          //   harmonic.round(),
-          //   (backtest.get_win_rate() * 100.0).round(),
-          //   backtest.win_count,
-          //   backtest.total_count
-          // );
-          println!(
-            "\tHarmonic: {:?}\t\tWin Rate: {:?}%",
-            harmonic.round(),
-            (backtest.get_win_rate() * 100.0).round()
-          );
-          let _ = file.write(format!(
-            "\tHarmonic: {:?}\t\tWin Rate: {:?}%\r",
-            harmonic.round(),
-            (backtest.get_win_rate() * 100.0).round()
-          ).to_string().as_bytes()).expect("Unable to write to file");
+          let win_rate = (backtest.get_win_rate() * 100.0).round();
+          if win_rate == 100.0 {
+            if harmonic < 10.0 {
+              let _ = file.write(format!(
+                "{}\t\t{:?}\t\t\t{:?}%\t{:?}\t\t\t{:?}\n",
+                planets[index].to_str(),
+                harmonic.round(),
+                (backtest.get_win_rate() * 100.0).round(),
+                backtest.get_win_count(),
+                backtest.get_total_count()
+              ).to_string().as_bytes()).expect("Unable to write to file");
+            } else {
+              let _ = file.write(format!(
+                "{}\t\t{:?}\t\t{:?}%\t{:?}\t\t\t{:?}\n",
+                planets[index].to_str(),
+                harmonic.round(),
+                (backtest.get_win_rate() * 100.0).round(),
+                backtest.get_win_count(),
+                backtest.get_total_count()
+              ).to_string().as_bytes()).expect("Unable to write to file");
+            }
+            println!(
+              "{}\t\t{:?}\t\t{:?}%\t{:?}\t\t{:?}",
+              planets[index].to_str(),
+              harmonic.round(),
+              (backtest.get_win_rate() * 100.0).round(),
+              backtest.get_win_count(),
+              backtest.get_total_count()
+            );
+          } else {
+            if harmonic < 10.0 {
+              let _ = file.write(format!(
+                "{}\t\t{:?}\t\t\t{:?}%\t\t{:?}\t\t\t{:?}\n",
+                planets[index].to_str(),
+                harmonic.round(),
+                (backtest.get_win_rate() * 100.0).round(),
+                backtest.get_win_count(),
+                backtest.get_total_count()
+              ).to_string().as_bytes()).expect("Unable to write to file");
+            } else {
+              let _ = file.write(format!(
+                "{}\t\t{:?}\t\t{:?}%\t\t{:?}\t\t\t{:?}\n",
+                planets[index].to_str(),
+                harmonic.round(),
+                (backtest.get_win_rate() * 100.0).round(),
+                backtest.get_win_count(),
+                backtest.get_total_count()
+              ).to_string().as_bytes()).expect("Unable to write to file");
+            }
+            println!(
+              "{}\t\t{:?}\t\t{:?}%\t\t{:?}\t\t{:?}",
+              planets[index].to_str(),
+              harmonic.round(),
+              (backtest.get_win_rate() * 100.0).round(),
+              backtest.get_win_count(),
+              backtest.get_total_count()
+            );
+          }
         }
       }
     }
-    println!("\r
+    println!("
       The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
       and been within {}% of entering a trade at the close of that reversal candle.\r
-      When and where almost perfectly sniped.\r", (margin_of_error * 100.0)
+      Backtest is for BTCUSD {} days from today {}.\r
+      When and where almost perfectly sniped.\r", (margin_of_error * 100.0), time_period, Time::today().as_string()
     );
-    let _ = file.write(format!("\r
+    let _ = file.write(format!("\n
       The “win rates” are the odds the algorithm would have known the day a reversal will occur\r
       and been within {}% of entering a trade at the close of that reversal candle.\r
-      When and where almost perfectly sniped.\r", (margin_of_error * 100.0)).as_bytes()
+      Backtest is for BTCUSD {} days from today {}.\r
+      When and where almost perfectly sniped.\r", (margin_of_error * 100.0), time_period, Time::today().as_string()).as_bytes()
     ).expect("Unable to write to file");
+  }
+
+  pub fn test_market_structure(candle_range: usize, results_file: &PathBuf) {
+    let ticker_data = TickerData::new_from_csv(results_file);
+    let market_structure = MarketStructure::new(ticker_data, candle_range);
+
+    match &market_structure.latest_high {
+      Some(high) => println!("Latest High: {}", high.date.as_string()),
+      None => println!("Latest High: None"),
+    };
+    match &market_structure.latest_low {
+      Some(low) => println!("Latest Low: {}", low.date.as_string()),
+      None => println!("Latest Low: None"),
+    };
+
+    println!("START\t\tEND\t\tREVERSAL\t\tTREND");
+    for trend in market_structure.trends.iter() {
+      match &trend.start_candle {
+        Some(candle) => print!("{}", candle.date.as_string()),
+        None => print!("None"),
+      };
+      match &trend.end_candle {
+        Some(candle) => print!("\t{}", candle.date.as_string()),
+        None => print!("\tNone\t"),
+      };
+      match &trend.reversal {
+        Some(reversal) => print!("\t{}\t\t", reversal.candle.date.as_string()),
+        None => print!("\tNone\t\t"),
+      };
+      print!("{:?}", trend.direction.as_ref());
+      println!();
+    }
   }
 }

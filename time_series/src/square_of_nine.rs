@@ -1,3 +1,4 @@
+use log::debug;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Harmonic {
@@ -45,20 +46,33 @@ impl Angle {
   pub fn new(angle: f32) -> Self {
     Angle(angle)
   }
-  fn decrement(&mut self, value: f32) {
+  pub fn get(self) -> f32 {
+    self.0
+  }
+  pub fn decrement(&mut self, value: f32) -> f32 {
     self.0 -= value;
     if self.0 >= 360.0 {
       self.0 -= 360.0;
     } else if self.0 < 0.0 {
       self.0 += 360.0;
     }
+    self.0
+  }
+  pub fn increment(&mut self, value: f32) -> f32 {
+    self.0 += value;
+    if self.0 >= 360.0 {
+      self.0 -= 360.0;
+    } else if self.0 < 0.0 {
+      self.0 += 360.0;
+    }
+    self.0
   }
   fn set(&mut self, angle: f32) {
     self.0 = angle;
   }
   /// Intended to function like array bounds, with range maximum being exclusive.
-  fn to_arc(self, arc_range: f32) -> (f32, f32) {
-    (self.0, self.0 + arc_range)
+  fn to_arc(mut self, arc_range: f32) -> (f32, f32) {
+    (self.0, self.increment(arc_range))
   }
 }
 
@@ -303,18 +317,145 @@ impl SquareOfNine {
     &self.values
   }
 
-  /// Iterate `SquareOfNine.values` for all `Point.arc` that cover either of the two angles.
-  /// Used to identify a value of a Point that equals the angle of an object.
-  /// Time=Price
+  /// Search SquareOfNine for all prices (harmonic points) along longitude.
+  /// Price=Time
   pub fn find_price_equals_time(&self, angle: f32) -> Vec<Point> {
     let mut points = Vec::new();
     for point in self.values.iter() {
       if let Some((range_min, range_max)) = point.arc {
-        if angle >= range_min && angle < range_max {
+        if range_min < range_max {
+          if angle >= range_min && angle < range_max {
+            points.push(*point);
+          }
+        } else if (range_min > range_max && angle >= range_min && angle < 360.0) || (range_min > range_max && angle < range_max && angle >= 0.0) {
           points.push(*point);
         }
       }
     }
     points
+  }
+
+  pub fn test_square_of_nine() {
+    let dimension = 11;
+    let square_of_nine = SquareOfNine::new(1, 1.0, dimension);
+    if dimension < 13 {
+      for y in square_of_nine.matrix.iter() {
+        for x in y {
+          match x.harmonic {
+            Some(harmonic) => print!("{}\t", harmonic as i32),
+            None => print!("-\t"),
+          }
+        }
+        println!();
+      }
+      println!("--------------------------------------------------------------------------------------------------------");
+      for y in square_of_nine.matrix.iter() {
+        for x in y {
+          print!("{}\t", x.value)
+        }
+        println!();
+      }
+      println!("--------------------------------------------------------------------------------------------------------");
+    }
+    //used to check size of outermost square of nine ring
+    let zero_zero = square_of_nine.matrix[0][0].value;
+    let one_one = square_of_nine.matrix[1][1].value;
+    let two_two = square_of_nine.matrix[2][2].value;
+    println!("Size of outermost ring: {:?}", (zero_zero - one_one) as u32);
+    println!("Size of second outermost ring: {:?}", (one_one - two_two) as u32);
+    println!("--------------------------------------------------------------------------------------------------------");
+    println!("PRICE\tHARMONIC\t\tDEGREES OF ARC");
+    for point in square_of_nine.values.iter() {
+      match point.harmonic {
+        None => {
+          match point.arc {
+            None => println!("{:?}\t{:?}\t\t\t{}\r", point.value, point.harmonic, "-"),
+            Some(arc) => println!("{:?}\t{:?}\t\t\t{:?}\r", point.value, point.harmonic, arc),
+          }
+        },
+        Some(Harmonic::Zero) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::OneEighth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::OneFourth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::ThreeEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::OneHalf) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::FiveEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::ThreeFourths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::SevenEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+      }
+    }
+    println!("--------------------------------------------------------------------------------------------------------");
+    let harmonics_zero = square_of_nine.find_price_equals_time(0.0);
+    println!("ZERO HARMONICS");
+    for point in harmonics_zero.iter() {
+      match point.harmonic {
+        None => {
+          match point.arc {
+            None => println!("{:?}\t{:?}\t\t\t{}\r", point.value, point.harmonic, "-"),
+            Some(arc) => println!("{:?}\t{:?}\t\t\t{:?}\r", point.value, point.harmonic, arc),
+          }
+        },
+        Some(Harmonic::Zero) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::OneEighth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::OneFourth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::ThreeEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::OneHalf) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::FiveEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::ThreeFourths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+        Some(Harmonic::SevenEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+      }
+    }
+  }
+
+  /// Check if value is within margin of error of a target.
+  pub fn within_margin_of_error(target: f64, value: f64, margin_of_error: f64) -> bool {
+    let margin = value * margin_of_error;
+    value >= target - margin && target + margin >= value
+  }
+
+  /// Search the SquareOfNine for a cell value.
+  /// Return the number of cells in the ring that contains the cell value
+  /// Used to determines cell value range for a 360 degree rotation.
+  pub fn ring_size_of_cell_value(&self, value: f64) -> Option<u64> {
+    println!("---------------------------------");
+    let mut ring_size = None;
+    let mut angle = 0.0;
+    let mut point_index = 0;
+    let mut point_value = 0.0;
+    for (index, point) in self.values.iter().enumerate() {
+      if value == point.value {
+        match point.arc {
+          None => ring_size = None,
+          Some(arc) => {
+            if arc.1 > arc.0 {
+              let median = (arc.1 - arc.0) / 2.0;
+              angle = Angle::new(arc.1).decrement(median);
+            } else {
+              let median = (arc.0 - arc.1) / 2.0;
+              angle = Angle::new(arc.0).decrement(median);
+            }
+            point_index = index;
+            point_value = point.value;
+          }
+        }
+        break;
+      }
+    }
+    for index in (point_index + 1)..self.values.len() {
+      let point = self.values.get(index).expect("Point not found");
+      if let Some(arc) = point.arc {
+        if arc.0 < arc.1 {
+          if angle >= arc.0 && angle < arc.1 {
+            debug!("angle: {:?}, arc: {:?}", angle, arc);
+            ring_size = Some((point.value - point_value) as u64);
+            break;
+          }
+        } else if (arc.0 > arc.1 && angle >= arc.0 && angle < 360.0) || (arc.0 > arc.1 && angle < arc.1 && angle >= 0.0) {
+          debug!("angle: {:?}, arc: {:?}", angle, arc);
+          ring_size = Some((point.value - point_value) as u64);
+          break;
+        }
+      }
+    }
+    ring_size
   }
 }

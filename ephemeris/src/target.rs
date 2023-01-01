@@ -73,3 +73,9 @@ impl Planet {
     }
   }
 }
+
+impl PartialEq for Planet {
+  fn eq(&self, other: &Self) -> bool {
+    self.to_str() == other.to_str()
+  }
+}

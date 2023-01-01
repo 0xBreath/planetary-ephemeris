@@ -759,6 +759,7 @@ dependencies = [
  "simplelog",
  "time_series",
  "tokio",
+ "toolkit",
 ]
 
 [[package]]
@@ -1037,6 +1038,14 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "toolkit"
+version = "0.1.0"
+dependencies = [
+ "ephemeris",
+ "time_series",
 ]
 
 [[package]]

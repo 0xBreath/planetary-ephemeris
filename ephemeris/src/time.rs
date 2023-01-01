@@ -1,4 +1,4 @@
-use chrono::{Datelike, TimeZone};
+use chrono::{Datelike, NaiveDate, TimeZone};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Time {
@@ -17,6 +17,13 @@ impl Time {
   }
   pub fn as_string(&self) -> String {
     format!("{}-{}-{}", self.year, self.month.to_string(), self.day.to_string())
+  }
+  pub fn to_naive_date(&self) -> NaiveDate {
+    chrono::NaiveDate::from_ymd_opt(
+      self.year,
+      self.month.to_num(),
+      self.day.to_num()
+    ).expect("failed to convert Time to chrono::NaiveDate")
   }
   /// Start time for 'Horizon API'
   pub fn start_time(&self) -> String {
@@ -67,6 +74,18 @@ impl Time {
     Time::new(year, &month, &day)
   }
 
+  /// Check if Time is within range of dates
+  pub fn within_range(&self, start: Self, stop: Self) -> bool {
+    self.to_naive_date() >= start.to_naive_date() && self.to_naive_date() <= stop.to_naive_date()
+  }
+
+  /// Difference in days between two dates
+  pub fn diff_days(&self, other: &Self) -> i64 {
+    let date1 = self.to_naive_date();
+    let date2 = other.to_naive_date();
+    date2.signed_duration_since(date1).num_days()
+  }
+
   /// Create Time from UNIX timestamp
   pub fn from_unix(unix: i64) -> Self {
     let date = chrono::Utc
@@ -76,6 +95,12 @@ impl Time {
     let month = Month::from_num(date.naive_utc().month());
     let day = Day::from_num(date.naive_utc().day());
     Time::new(year, &month, &day)
+  }
+}
+
+impl PartialEq for Time {
+  fn eq(&self, other: &Self) -> bool {
+    self.to_naive_date() == other.to_naive_date()
   }
 }
 
