@@ -16,10 +16,10 @@ async fn main() {
   init_logger();
 
   println!("----------------------------------------------------------------------------------------");
-  println!("\t\t### RETROGRADE ###\t\t");
+  println!("\t\t### PLANET ENTER/EXIT RETROGRADE ###\t\t");
   let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
   let retrograde = Retrograde::new(ticker_data).await;
-  retrograde.backtest(10, 0);
+  retrograde.backtest(20);
   // println!("\t\t### PLANET PAIR ALIGNMENT MATRIX ###\t\t");
   // PlanetMatrix::test_planet_matrix(
   //   &PathBuf::from(TICKER_DATA_PATH),

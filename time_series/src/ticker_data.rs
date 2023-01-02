@@ -147,7 +147,7 @@ impl TickerData {
   pub fn find_reversals(&self, candle_range: usize) -> Vec<Reversal> {
     let mut reversals = Vec::<Reversal>::new();
     for (index, index_candle) in self.candles.iter().enumerate() {
-      if index < candle_range || index + 10 > self.candles.len() - 1 {
+      if index < candle_range || index + candle_range > self.candles.len() - 1 {
         continue;
       }
       // let range = &self.candles[index - candle_range..index + candle_range];
