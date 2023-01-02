@@ -1,7 +1,6 @@
+use log::debug;
 use ephemeris::*;
 use time_series::*;
-use time_series::Reversal;
-use crate::PlanetLongitudes;
 
 #[derive(Debug, Clone)]
 pub struct RetrogradeEvent {
@@ -14,12 +13,16 @@ pub struct RetrogradeEvent {
 
 #[derive(Debug, Clone)]
 pub struct Retrograde {
-  pub retrogrades: Vec<RetrogradeEvent>
+  pub retrogrades: Vec<RetrogradeEvent>,
+  pub ticker_data: TickerData,
 }
 
 impl Retrograde {
   /// Search time period for retrograde events
-  pub async fn new(time_period: i64) -> Self {
+  pub async fn new(ticker_data: TickerData) -> Self {
+    let earliest_date = ticker_data.earliest_date();
+    let time_period = Time::today().diff_days(&earliest_date);
+
     let mut retrogrades = Vec::new();
     for planet in Planet::to_vec().iter() {
       let daily_angles = Query::query(
@@ -58,7 +61,7 @@ impl Retrograde {
               end_date: date,
               end_angle: angle,
             });
-            println!(
+            debug!(
               "{}\t{} at {} to {} at {}",
               planet.to_str(), start_date.as_string(), start_angle, date.as_string(), angle
             );
@@ -73,13 +76,47 @@ impl Retrograde {
         }
       }
     }
-    Self { retrogrades }
+    Self {
+      retrogrades,
+      ticker_data
+    }
   }
 
   pub fn is_retrograde(first: f32, second: f32) -> bool {
     second - first < 0.0
   }
 
-  // /// Search `Candle` history for reversals on retrograde start or end dates
-  // pub fn backtest(&self, reversals: &Vec<Reversal>) {}
+  /// Search `Candle` history for reversals on retrograde start or end dates
+  pub fn backtest(&self, reversal_candle_range: usize, error_margin_days: u32) {
+    let reversals = self.ticker_data.find_reversals(reversal_candle_range);
+
+    // iterate over reversals
+    // iterate over retrograde events
+    // if `RetrogradeEvent` start_date or end_date is within margin of error of candle date
+    // reversal is considered a win
+    let mut start_win_counts = vec![0; Planet::to_vec().len()];
+    let mut end_win_counts = vec![0; Planet::to_vec().len()];
+    for retrograde in self.retrogrades.iter() {
+      let planet_index = Planet::to_vec().iter().position(|p| p == &retrograde.planet).unwrap();
+      for reversal in reversals.iter() {
+        let range_start = reversal.candle.date.delta_date(-(error_margin_days as i64));
+        let range_end = reversal.candle.date.delta_date(error_margin_days as i64);
+        if retrograde.start_date.within_range(range_start, range_end) {
+          start_win_counts[planet_index] += 1;
+        } else if retrograde.end_date.within_range(range_start, range_end) {
+          end_win_counts[planet_index] += 1;
+        }
+
+      }
+    }
+    for (win_counts, planet) in start_win_counts.iter().zip(end_win_counts.iter()).zip(Planet::to_vec().iter()) {
+      let (start_win_count, end_win_count) = win_counts;
+      let total_win_count = start_win_count + end_win_count;
+      let total_retrograde_count = self.retrogrades.len();
+      let win_rate = (total_win_count as f32 / total_retrograde_count as f32) * 100.0;
+      let start_win_rate = (*start_win_count as f32 / total_retrograde_count as f32) * 100.0;
+      let end_win_rate = (*end_win_count as f32 / total_retrograde_count as f32) * 100.0;
+      println!("{}\tWin Rate: {}%\tStart Win Rate: {}%\tEnd Win Rate: {}%", planet.to_str(), win_rate, start_win_rate, end_win_rate);
+    }
+  }
 }

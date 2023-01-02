@@ -58,7 +58,7 @@ impl Planet {
       Planet::Pluto => 9,
     }
   }
-  
+
   pub fn to_vec() -> Vec<Planet> {
     vec![
       Planet::Moon,
@@ -73,8 +73,8 @@ impl Planet {
       Planet::Pluto,
     ]
   }
-  
-  
+
+
   /// API mapping for object relative to earth center
   fn to_earth_center(&self) -> &str {
     match self {

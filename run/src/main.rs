@@ -1,6 +1,6 @@
 
 use std::path::PathBuf;
-use log::{debug, LevelFilter};
+use log::LevelFilter;
 use simplelog::{
   ColorChoice, Config, TerminalMode, TermLogger,
 };
@@ -15,7 +15,11 @@ pub const RESULTS_PATH: &str = "BTCUSD_results.txt";
 async fn main() {
   init_logger();
 
-  Retrograde::new(-730).await;
+  println!("----------------------------------------------------------------------------------------");
+  println!("\t\t### RETROGRADE ###\t\t");
+  let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
+  let retrograde = Retrograde::new(ticker_data).await;
+  retrograde.backtest(10, 0);
   // println!("\t\t### PLANET PAIR ALIGNMENT MATRIX ###\t\t");
   // PlanetMatrix::test_planet_matrix(
   //   &PathBuf::from(TICKER_DATA_PATH),

@@ -142,6 +142,7 @@ impl TickerData {
     lowest_low
   }
 
+  // TODO: better system for finding reversals
   /// Find price extremes (highs and lows) in a given range of candles +/- the extreme candle.
   pub fn find_reversals(&self, candle_range: usize) -> Vec<Reversal> {
     let mut reversals = Vec::<Reversal>::new();
@@ -181,6 +182,10 @@ impl TickerData {
       }
     }
     reversals
+  }
+
+  pub fn earliest_date(&self) -> Time {
+    self.candles.get(0).unwrap().date
   }
 
   /// Compute mean candle close.

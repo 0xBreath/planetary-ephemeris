@@ -11,8 +11,8 @@ impl Time {
   pub fn new(year: i32, month: &Month, day: &Day) -> Self {
     Self {
       year,
-      month: month.clone(),
-      day: day.clone(),
+      month: *month,
+      day: *day,
     }
   }
   pub fn as_string(&self) -> String {
