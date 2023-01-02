@@ -2,6 +2,7 @@ use log::debug;
 use ephemeris::*;
 use time_series::*;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct RetrogradeEvent {
   planet: Planet,
@@ -96,6 +97,7 @@ impl Retrograde {
     // reversal is considered a win
     let mut start_win_counts = vec![0; Planet::to_vec().len()];
     let mut end_win_counts = vec![0; Planet::to_vec().len()];
+    let mut total_counts = vec![0; Planet::to_vec().len()];
     for retrograde in self.retrogrades.iter() {
       let planet_index = Planet::to_vec().iter().position(|p| p == &retrograde.planet).unwrap();
       for reversal in reversals.iter() {
@@ -103,20 +105,27 @@ impl Retrograde {
         let range_end = reversal.candle.date.delta_date(error_margin_days as i64);
         if retrograde.start_date.within_range(range_start, range_end) {
           start_win_counts[planet_index] += 1;
+          // retrograde event should only line up with one reversal candle, so break afterwards
+          break;
         } else if retrograde.end_date.within_range(range_start, range_end) {
           end_win_counts[planet_index] += 1;
+          // retrograde event should only line up with one reversal candle, so break afterwards
+          break;
         }
-
       }
+      total_counts[planet_index] += 1;
     }
-    for (win_counts, planet) in start_win_counts.iter().zip(end_win_counts.iter()).zip(Planet::to_vec().iter()) {
-      let (start_win_count, end_win_count) = win_counts;
+    println!("PLANET\t\tWIN RATE\tSTART RATE\tEND RATE");
+    for (index, planet) in Planet::to_vec().iter().enumerate() {
+      let start_win_count = start_win_counts[index];
+      let end_win_count = end_win_counts[index];
+      let total_count = total_counts[index];
       let total_win_count = start_win_count + end_win_count;
-      let total_retrograde_count = self.retrogrades.len();
-      let win_rate = (total_win_count as f32 / total_retrograde_count as f32) * 100.0;
-      let start_win_rate = (*start_win_count as f32 / total_retrograde_count as f32) * 100.0;
-      let end_win_rate = (*end_win_count as f32 / total_retrograde_count as f32) * 100.0;
-      println!("{}\tWin Rate: {}%\tStart Win Rate: {}%\tEnd Win Rate: {}%", planet.to_str(), win_rate, start_win_rate, end_win_rate);
+
+      let win_rate = (total_win_count as f32 / total_count as f32) * 100.0;
+      let start_win_rate = (start_win_count as f32 / total_count as f32) * 100.0;
+      let end_win_rate = (end_win_count as f32 / total_count as f32) * 100.0;
+      println!("{}\t\t{}%\t\t{}%\t\t{}%", planet.to_str(), win_rate.round(), start_win_rate.round(), end_win_rate.round());
     }
   }
 }

@@ -1,8 +1,5 @@
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
-use ephemeris::{Planet, Time};
-use crate::{Backtest, Candle, Reversal, ReversalType, SquareOfNine, TickerData};
+use crate::{Candle, Reversal, ReversalType, TickerData};
 
 #[derive(Debug, Clone)]
 pub enum Direction {
