@@ -1,0 +1,13 @@
+Reversal defined by 20 candles after reversal candle are higher/lower (could swing trade)
+Time period: -3083 days from today
+PLANET          WIN RATE        START RATE      END RATE        START COUNT     END COUNT       TOTAL COUNT
+Moon            42%             30%             12%             34              13              113
+Sun             38%             13%             25%             1               2               8
+Mercury         44%             24%             21%             8               7               34
+Venus           27%             20%             7%              3               1               15
+Mars            63%             25%             38%             2               3               8
+Jupiter         27%             9%              18%             1               2               11
+Saturn          50%             50%             0%              4               0               8
+Uranus          75%             50%             25%             4               2               8
+Neptune         67%             22%             44%             2               4               9
+Pluto           33%             33%             0%              3               0               9
