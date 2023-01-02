@@ -26,6 +26,7 @@ pub enum Planet {
   Neptune,
   Pluto,
 }
+
 #[allow(dead_code)]
 impl Planet {
   pub fn to_str(&self) -> &str {
@@ -57,6 +58,23 @@ impl Planet {
       Planet::Pluto => 9,
     }
   }
+  
+  pub fn to_vec() -> Vec<Planet> {
+    vec![
+      Planet::Moon,
+      Planet::Sun,
+      Planet::Mercury,
+      Planet::Venus,
+      Planet::Mars,
+      Planet::Jupiter,
+      Planet::Saturn,
+      Planet::Uranus,
+      Planet::Neptune,
+      Planet::Pluto,
+    ]
+  }
+  
+  
   /// API mapping for object relative to earth center
   fn to_earth_center(&self) -> &str {
     match self {

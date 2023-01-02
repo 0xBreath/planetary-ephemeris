@@ -15,6 +15,7 @@ pub const RESULTS_PATH: &str = "BTCUSD_results.txt";
 async fn main() {
   init_logger();
 
+  Retrograde::new(-730).await;
   // println!("\t\t### PLANET PAIR ALIGNMENT MATRIX ###\t\t");
   // PlanetMatrix::test_planet_matrix(
   //   &PathBuf::from(TICKER_DATA_PATH),
@@ -24,7 +25,11 @@ async fn main() {
   // ).await;
   // println!("----------------------------------------------------------------------------------------");
   // println!("\t\t### LUNAR ZERO DECLINATION CROSS ###\t\t");
-  // LunarDeclination::test_lunar_declination(-720, Time::today(), 10, 1).await;
+  // LunarDeclination::test_lunar_declination(
+  //   Time::today(),
+  //   10,
+  //   0
+  // ).await;
   // println!("----------------------------------------------------------------------------------------");
   // println!("\t\t### SQUARE OF NINE ###\t\t");
   // SquareOfNine::test_square_of_nine();
@@ -32,13 +37,19 @@ async fn main() {
   // println!("\t\t### IDENTIFY MARKET STRUCTURE ###\t\t");
   // MarketStructure::test_market_structure(5, &PathBuf::from(TICKER_DATA_PATH));
   // println!("----------------------------------------------------------------------------------------");
-  println!("\t\t### PRICE PLANET HARMONICS ###\t\t");
-  PricePlanet::new(
-    PathBuf::from(TICKER_DATA_PATH),
-    PathBuf::from(RESULTS_PATH),
-    10,
-    100.0,
-  ).await.single_price_planet_signal(0.01,0).await;
+
+  // let price_planet = PricePlanet::new(
+  //   PathBuf::from(TICKER_DATA_PATH),
+  //   PathBuf::from(RESULTS_PATH),
+  //   10,
+  //   100.0,
+  // ).await;
+  // println!("\t\t### CONFLUENT PRICE PLANET HARMONICS ###\t\t");
+  // price_planet.confluent_signals(0.005, 0).await;
+
+  // println!();
+  // println!("\t\t### SINGLE PRICE PLANET HARMONICS ###\t\t");
+  //price_planet.single_signal(0.005, 0).await;
 }
 
 pub fn init_logger() {

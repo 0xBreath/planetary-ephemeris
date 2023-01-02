@@ -415,7 +415,7 @@ impl SquareOfNine {
 
   /// Check if value is within margin of error of a target.
   pub fn within_margin_of_error(target: f64, value: f64, margin_of_error: f64) -> bool {
-    let margin = value * margin_of_error;
+    let margin = target * margin_of_error;
     value >= target - margin && target + margin >= value
   }
 
