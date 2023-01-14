@@ -1,4 +1,5 @@
-use chrono::{Datelike, NaiveDate, TimeZone};
+use std::cmp::Ordering;
+use chrono::{Datelike, DateTime, NaiveDate, TimeZone, Utc};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Time {
@@ -15,6 +16,32 @@ impl Time {
       day: *day,
     }
   }
+
+  pub fn from_datetime(dt: DateTime<Utc>) -> Self {
+    Self {
+      year: dt.year(),
+      month: Month::from_num(dt.month()),
+      day: Day::from_num(dt.day()),
+    }
+  }
+
+  pub fn from_eclipse_date_format(date: &str) -> Self {
+    let end_year_index = date.find(' ').unwrap();
+    let year = date[..end_year_index].parse::<i32>().unwrap();
+    let start_month_index = end_year_index + 1;
+    let end_month_index = date[start_month_index..].find(' ').unwrap() + start_month_index;
+    let month = Month::from_name(date[start_month_index..end_month_index].parse::<String>().unwrap().as_str());
+    let start_day_index = end_month_index + 1;
+    let end_day_index = date.len();
+    let day = Day::from_num(date[start_day_index..end_day_index].parse::<u32>().unwrap());
+
+    Self {
+      year,
+      month,
+      day,
+    }
+  }
+
   pub fn as_string(&self) -> String {
     format!("{}-{}-{}", self.year, self.month.to_string(), self.day.to_string())
   }
@@ -25,6 +52,14 @@ impl Time {
       self.day.to_num()
     ).expect("failed to convert Time to chrono::NaiveDate")
   }
+
+  pub fn to_datetime(&self) -> DateTime<Utc> {
+    Utc.with_ymd_and_hms(
+      self.year, self.month.to_num(), self.day.to_num(),
+      0, 0, 0
+    ).unwrap()
+  }
+
   /// Start time for 'Horizon API'
   pub fn start_time(&self) -> String {
     format!("&START_TIME='{}'", self.as_string())
@@ -96,11 +131,27 @@ impl Time {
     let day = Day::from_num(date.naive_utc().day());
     Time::new(year, &month, &day)
   }
+
+  pub fn from_unix_msec(unix: i64) -> Self {
+    let date = chrono::Utc
+      .timestamp_millis_opt(unix)
+      .unwrap();
+    let year = date.naive_utc().year();
+    let month = Month::from_num(date.naive_utc().month());
+    let day = Day::from_num(date.naive_utc().day());
+    Time::new(year, &month, &day)
+  }
 }
 
 impl PartialEq for Time {
   fn eq(&self, other: &Self) -> bool {
     self.to_naive_date() == other.to_naive_date()
+  }
+}
+
+impl PartialOrd for Time {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    self.to_naive_date().partial_cmp(&other.to_naive_date())
   }
 }
 
@@ -153,6 +204,24 @@ impl Month {
       "Nov" => Month::November,
       "Dec" => Month::December,
       _ => panic!("Invalid month abbreviation: {}", abbrev),
+    }
+  }
+
+  pub fn from_name(month: &str) -> Self {
+    match month {
+      "January" => Month::January,
+      "February" => Month::February,
+      "March" => Month::March,
+      "April" => Month::April,
+      "May" => Month::May,
+      "June" => Month::June,
+      "July" => Month::July,
+      "August" => Month::August,
+      "September" => Month::September,
+      "October" => Month::October,
+      "November" => Month::November,
+      "December" => Month::December,
+      _ => panic!("Invalid month: {}", month),
     }
   }
 

@@ -3,5 +3,6 @@ members = [
     "run",
     "ephemeris",
     "time_series",
-    "toolkit"
+    "toolkit",
+    "dataframe"
 ]

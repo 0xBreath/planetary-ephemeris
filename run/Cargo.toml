@@ -13,7 +13,8 @@ path = "src/main.rs"
 ephemeris = { path = "../ephemeris" }
 time_series = { path = "../time_series" }
 toolkit = { path = "../toolkit" }
+dataframe = { path = "../dataframe" }
 # external deps
-tokio = { version = "1.22.0", features = ["full"] }
+tokio = { version = "1.24.1", features = ["full"] }
 log = "0.4"
 simplelog = "0.12.0"

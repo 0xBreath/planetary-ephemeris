@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use ephemeris::Time;
 
 /// Event for a single candlestick for a given ticker.
@@ -14,6 +15,7 @@ pub struct Candle {
   /// Close price
   pub close: f64,
 }
+
 impl PartialEq for Candle {
   fn eq(&self, other: &Self) -> bool {
     self.date.as_string() == other.date.as_string() && self.close == other.close

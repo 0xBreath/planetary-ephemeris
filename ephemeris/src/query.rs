@@ -1,3 +1,4 @@
+use std::io::Error;
 use crate::{Alignment, DataType, Declination, Origin, Planet, RightAscension};
 use crate::target::Target;
 use crate::quantities::Quantities;
@@ -18,12 +19,12 @@ impl Query {
     planet: &Planet,
     data_type: DataType,
     mut start_time: Time,
-    period_days: i64,
-  ) -> Vec<(Time, f32)> {
-    let mut stop_time = start_time.delta_date(period_days);
+    mut stop_time: Time,
+  ) -> Result<Vec<(Time, f32)>, Error> {
     // swap start and stop time if period is historical rather than for the future
-    if period_days < 0 {
-      std::mem::swap(&mut start_time, &mut stop_time);
+    if start_time.diff_days(&stop_time) < 0 {
+      //std::mem::swap(&mut start_time, &mut stop_time);
+      return Err(Error::new(std::io::ErrorKind::InvalidInput, "start time must be before stop time"));
     }
     let query = Query::build_query(
       Target::new(planet),
@@ -41,8 +42,8 @@ impl Query {
       .expect("failed to read response");
     let data = Self::extract_data(data);
     match data_type {
-      DataType::RightAscension => Self::format_for_right_ascension(data),
-      DataType::Declination => Self::format_for_declination(data),
+      DataType::RightAscension => Ok(Self::format_for_right_ascension(data)),
+      DataType::Declination => Ok(Self::format_for_declination(data)),
     }
   }
 
@@ -146,7 +147,8 @@ impl Query {
     vec
   }
 
-  /// Remove duplicate Alignment values for consecutive dates
+  /// Finds duplicate Alignments on consecutive dates where f32 is within margin of error
+  /// filters for the date with f32 closest to the actual Alignment angle
   pub fn remove_duplicate_values(vec: &mut Vec<(Time, f32, Alignment)>) -> Vec<(Time, f32, Alignment)> {
     if vec.is_empty() {
       return vec.to_vec();

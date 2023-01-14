@@ -74,6 +74,10 @@ impl Planet {
     ]
   }
 
+  pub fn to_index(&self) -> usize {
+    Self::to_vec().iter().position(|p| p == self).unwrap()
+  }
+
 
   /// API mapping for object relative to earth center
   fn to_earth_center(&self) -> &str {

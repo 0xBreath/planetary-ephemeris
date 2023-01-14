@@ -1,11 +1,11 @@
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use ephemeris::*;
 use time_series::*;
 
-pub const TICKER_DATA_PATH: &str = "BTCUSD.csv";
-pub const RESULTS_PATH: &str = "BTCUSD_results.txt";
-
 pub type Matrix = Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)>;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlanetPairAlignmentWinRate {
   pub planet_1: Planet,
@@ -19,7 +19,11 @@ pub struct PlanetPairAlignmentWinRate {
 pub struct PlanetMatrix {
   /// Vector of harmonic angles between two planets for a period of time.
   /// Compares all combinations of planets; a matrix of planetary alignments.
-  pub matrix: Matrix
+  pub matrix: Matrix,
+  /// The start date of the planet positions
+  pub start_date: Time,
+  /// The number of days +/- start_time to query for planet positions.
+  pub period_days: i64,
 }
 impl PlanetMatrix {
   /// Compare geocentric right ascension of two planets.
@@ -27,22 +31,10 @@ impl PlanetMatrix {
   pub async fn new(
     origin: Origin,
     start_time: &Time,
-    period_days: i64,
+    end_time: &Time,
     alignment_margin_error: f32,
   ) -> Self {
-    let planets = vec![
-      Planet::Sun,
-      Planet::Moon,
-      Planet::Mercury,
-      Planet::Venus,
-      Planet::Mars,
-      Planet::Jupiter,
-      Planet::Saturn,
-      Planet::Uranus,
-      Planet::Neptune,
-      Planet::Pluto,
-    ];
-
+    let planets = Planet::to_vec();
     let mut matrix: Matrix = Vec::new();
 
     let mut planet_alignments = Vec::new();
@@ -52,8 +44,8 @@ impl PlanetMatrix {
         planet,
         DataType::RightAscension,
         *start_time,
-        period_days
-      ).await);
+        *end_time
+      ).await.expect("failed to query planet angles"));
     }
 
     for (index, planet_a_alignments) in planet_alignments.iter().enumerate() {
@@ -77,7 +69,12 @@ impl PlanetMatrix {
         matrix.push((planet_a.clone(), planet_b.clone(), vec));
       }
     }
-    Self { matrix }
+    let period_days = start_time.diff_days(end_time);
+    Self {
+      matrix,
+      start_date: *start_time,
+      period_days
+    }
   }
 
   /// Find the total count of each planet pair alignment
@@ -121,6 +118,38 @@ impl PlanetMatrix {
     vec
   }
 
+  /// Print to a file all planet pair alignments for the time period.
+  pub fn print_alignments(&self, results_file: &PathBuf) {
+    let mut file = File::create(results_file).unwrap();
+    println!("\t\t### PLANET MATRIX ###\t\t");
+    writeln!(file, "\t\t### PLANET MATRIX ###\t\t").expect("failed to write planet alignment to file");
+    println!("Planet alignments for {} days from {}\n", self.period_days, self.start_date.as_string());
+    writeln!(file, "Planet alignments for {} days from {}\n", self.period_days, self.start_date.as_string())
+      .expect("failed to write planet alignment to file");
+    for (planet_a, planet_b, alignments) in self.matrix.iter() {
+      for data in alignments.iter() {
+        let (time, _, alignment) = data;
+        println!(
+          "{:?}-{:?}\t{:?}\t{:?}",
+          planet_a,
+          planet_b,
+          time.as_string(),
+          alignment.to_str(),
+        );
+        writeln!(
+          file,
+          "{:?}-{:?}\t{:?}\t{:?}",
+          planet_a,
+          planet_b,
+          time.as_string(),
+          alignment.to_str(),
+        ).expect("failed to write planet alignment to file");
+
+      }
+
+    }
+  }
+
   /// Search for a `PlanetPairAlignmentWinRate` by two `Planet` and their `Alignment`
   pub fn get_planet_pair_alignment_win_rate(
     alignment_counts: &[PlanetPairAlignmentWinRate],
@@ -138,26 +167,26 @@ impl PlanetMatrix {
     value
   }
 
-  /// NOTE: expects `TICKER_DATA_PATH: &str = "BTCUSD.csv"` to be in root directory
   /// Compare each planet to one other planet for all possible harmonics.
   /// Compare all possibilities of planet pairs as a "matrix" of possibilities.
   /// For each planet pair in the matrix, find if the date (+/- a margin of days) equals a known reversal date (analyzed from existing price data).
   /// A "win" is considered if the alignment occurred on the same day as a known reversal.
   /// Compute the win rate of each planet pair. How likely could the planet pair predict a reversal? (across all harmonics)
   /// Win rate is across all harmonics for a given planet pair.
-  pub async fn test_planet_matrix(results_file: &PathBuf, margin_of_error_days: u32, alignment_margin_error: f32, candle_range: usize) {
-    let ticker_data = TickerData::new_from_csv(results_file);
+  pub async fn test_planet_matrix(ticker_data_path: &PathBuf, margin_of_error_days: u32, alignment_margin_error: f32, candle_range: usize) {
+    let ticker_data = TickerData::new_from_csv(ticker_data_path);
     let reversals = ticker_data.find_reversals(candle_range);
     if ticker_data.candles.is_empty() {
       return
     }
     let earliest_candle_date = &ticker_data.get_candles()[0].date;
+    let latest_candle_date = &ticker_data.get_candles()[ticker_data.get_candles().len() - 1].date;
     let max_history_days = Time::today().diff_days(earliest_candle_date);
 
     let planet_matrix = PlanetMatrix::new(
       Origin::Geocentric,
-      &Time::today(),
-      max_history_days,
+      earliest_candle_date,
+      latest_candle_date,
       alignment_margin_error
     ).await;
     println!("PLANET PAIR\tALIGNMENT\tWIN RATE\tWIN EVENTS\tTOTAL EVENTS");

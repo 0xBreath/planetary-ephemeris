@@ -5,11 +5,11 @@ use time_series::*;
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct RetrogradeEvent {
-  planet: Planet,
-  start_date: Time,
-  start_angle: f32,
-  end_date: Time,
-  end_angle: f32,
+  pub planet: Planet,
+  pub start_date: Time,
+  pub start_angle: f32,
+  pub end_date: Time,
+  pub end_angle: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -20,19 +20,16 @@ pub struct Retrograde {
 
 impl Retrograde {
   /// Search time period for retrograde events
-  pub async fn new(ticker_data: TickerData) -> Self {
-    let earliest_date = ticker_data.earliest_date();
-    let time_period = Time::today().diff_days(&earliest_date);
-
+  pub async fn new(ticker_data: TickerData, start_date: Time, end_date: Time) -> Self {
     let mut retrogrades = Vec::new();
     for planet in Planet::to_vec().iter() {
       let daily_angles = Query::query(
         Origin::Geocentric,
         planet,
         DataType::RightAscension,
-        Time::today(),
-        time_period
-      ).await;
+        start_date,
+        end_date
+      ).await.expect("failed to query planet angles");
 
       // retrograde identified as longitude decreasing (except)
       // covers case where angle passes through 360
@@ -111,6 +108,7 @@ impl Retrograde {
             ReversalType::Top => start_win_counts_top[planet_index] += 1,
             ReversalType::Bottom => start_win_counts_bottom[planet_index] += 1,
           }
+          println!("{}\tSTART\t{}", retrograde.planet.to_str(), retrograde.end_date.as_string());
           // retrograde event should only line up with one reversal candle, so break afterwards
           break;
         } else if retrograde.end_date == reversal.candle.date {
@@ -118,6 +116,7 @@ impl Retrograde {
             ReversalType::Top => end_win_counts_top[planet_index] += 1,
             ReversalType::Bottom => end_win_counts_bottom[planet_index] += 1,
           }
+          println!("{}\tEND\t{}", retrograde.planet.to_str(), retrograde.end_date.as_string());
           // retrograde event should only line up with one reversal candle, so break afterwards
           break;
         }
@@ -136,8 +135,8 @@ impl Retrograde {
       let total_win_count = total_win_count_start + total_win_count_end;
 
       let win_rate = (total_win_count as f32 / total_count as f32) * 100.0;
-      let start_win_rate = (total_win_count_start as f32 / total_count as f32) * 100.0;
-      let end_win_rate = (total_win_count_end as f32 / total_count as f32) * 100.0;
+      let _start_win_rate = (total_win_count_start as f32 / total_count as f32) * 100.0;
+      let _end_win_rate = (total_win_count_end as f32 / total_count as f32) * 100.0;
       let start_win_rate_top = (start_win_count_top as f32 / total_count as f32) * 100.0;
       let start_win_rate_bottom = (start_win_count_bottom as f32 / total_count as f32) * 100.0;
       let end_win_rate_top = (end_win_count_top as f32 / total_count as f32) * 100.0;

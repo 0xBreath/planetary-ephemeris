@@ -1,22 +1,33 @@
 use std::fs::File;
 use std::path::PathBuf;
 use csv;
-use log::debug;
-use ephemeris::Time;
-use crate::Candle;
+use log::{debug, info};
+use ephemeris::{Day, Month, Time};
+use crate::*;
+
+#[derive(Debug, Clone)]
+pub enum FirstMove {
+  EngulfingHigh,
+  EngulfingLow
+}
 
 #[derive(Debug, Clone)]
 pub enum ReversalType {
   Top,
   Bottom
 }
+impl ReversalType {
+  pub fn as_string(&self) -> String {
+    match self {
+      ReversalType::Top => "Top".to_string(),
+      ReversalType::Bottom => "Bottom".to_string()
+    }
+  }
+}
+
 impl PartialEq for ReversalType {
   fn eq(&self, other: &Self) -> bool {
-    match (self, other) {
-      (ReversalType::Top, ReversalType::Top) => true,
-      (ReversalType::Bottom, ReversalType::Bottom) => true,
-      _ => false,
-    }
+    matches!((self, other), (ReversalType::Top, ReversalType::Top) | (ReversalType::Bottom, ReversalType::Bottom))
   }
 }
 
@@ -28,6 +39,7 @@ pub struct Reversal {
 
 #[derive(Clone, Debug)]
 pub struct TickerData {
+  /// Candlestick history of a ticker.
   pub candles: Vec<Candle>,
 }
 
@@ -61,9 +73,41 @@ impl TickerData {
     Self { candles: data }
   }
 
+  // pub async fn new(ticker_symbol: TickerSymbol, start_date: Time, end_date: Time) -> Self {
+  //   let polygon = PolygonApiWrapper::new(ticker_symbol, start_date, end_date).await;
+  //
+  //   let bars = polygon.response["results"].as_array().unwrap();
+  //   let mut candles = Vec::<Candle>::new();
+  //   for bar in bars.iter() {
+  //     candles.push(Candle {
+  //       date: Time::from_unix_msec(bar["t"].as_i64().unwrap()),
+  //       open: bar["o"].as_f64().unwrap(),
+  //       high: bar["h"].as_f64().unwrap(),
+  //       low: bar["l"].as_f64().unwrap(),
+  //       close: bar["c"].as_f64().unwrap(),
+  //     });
+  //   }
+  //
+  //   Self { candles }
+  // }
+
+  pub async fn new(ticker_symbol: String, start_date: Time, end_date: Time) -> Self {
+    let quandl = QuandlApiWrapper::new(ticker_symbol, start_date, end_date).await;
+
+    Self { candles: Vec::new() }
+  }
+
   /// Get reference to `Vec<Candle>` from `TickerData`.
   pub fn get_candles(&self) -> &Vec<Candle> {
     &self.candles
+  }
+
+  pub fn earliest_date(&self) -> &Time {
+    &self.get_candles()[0].date
+  }
+
+  pub fn latest_date(&self) -> &Time {
+    &self.get_candles()[self.candles.len() - 1].date
   }
 
   /// Find price extreme (highs) in a given range of candles +/- the extreme candle.
@@ -150,8 +194,7 @@ impl TickerData {
       if index < candle_range || index + candle_range > self.candles.len() - 1 {
         continue;
       }
-      // let range = &self.candles[index - candle_range..index + candle_range];
-      let range = &self.candles[index..index + candle_range];
+      let range = &self.candles[index - (candle_range / 2)..(index + candle_range)];
       let mut min_candle: &Candle = range.get(0).unwrap();
       let mut max_candle: &Candle = range.get(0).unwrap();
       for (index, candle) in range.iter().enumerate() {
@@ -184,31 +227,126 @@ impl TickerData {
     reversals
   }
 
-  pub fn earliest_date(&self) -> Time {
-    self.candles.get(0).unwrap().date
+  /// Find candles with a Z-Score >1.0 from the candle one period before.
+  pub fn find_sushi_roll_reversals(&self, period: usize) -> Vec<Reversal> {
+    let mut reversals = Vec::<Reversal>::new();
+    for (index, index_candle) in self.candles.iter().enumerate() {
+      if index < period {
+        continue;
+      }
+      let period_first_half = period / 2;
+      let period_last_half = period - period_first_half;
+      let sum_first_half_highs = self.candles[index - period..index - period_last_half].iter().fold(0.0, |sum, candle| sum + candle.high);
+      let sum_first_half_lows = self.candles[index - period..index - period_last_half].iter().fold(0.0, |sum, candle| sum + candle.low);
+      let mean_high = sum_first_half_highs / period_first_half as f64;
+      let mean_low = sum_first_half_lows / period_first_half as f64;
+      debug!("Date: {}\tMean High: {}\tMean Low: {}", index_candle.date.as_string(), mean_high, mean_low);
+
+      let last_half_range = &self.candles[index - period_last_half..index];
+      let mut first_move: Option<FirstMove> = None;
+      for candle in last_half_range.iter() {
+        // bullish engulfing high made, wait for bearish engulfing low
+        if candle.high > mean_high {
+          match first_move {
+            // no engulfing candle occurred yet, this is the first move
+            None => first_move = Some(FirstMove::EngulfingHigh),
+            Some(FirstMove::EngulfingHigh) => continue,
+            // bearish engulfing high already made, this engulfing high is the reversal signal
+            Some(FirstMove::EngulfingLow) => {
+              reversals.push(Reversal {
+                candle: candle.clone(),
+                reversal_type: ReversalType::Bottom
+              });
+              break;
+            }
+          }
+        }
+        // bearish engulfing low made, wait for bullish engulfing high
+        else if candle.low < mean_low {
+          match first_move {
+            // no engulfing candle occurred yet, this is the first move
+            None => first_move = Some(FirstMove::EngulfingLow),
+            Some(FirstMove::EngulfingLow) => continue,
+            // bullish engulfing high already made, this engulfing low is the reversal signal
+            Some(FirstMove::EngulfingHigh) => {
+              reversals.push(Reversal {
+                candle: candle.clone(),
+                reversal_type: ReversalType::Top
+              });
+              break;
+            }
+          }
+        }
+      }
+    }
+    Self::remove_duplicate_reversals(reversals)
   }
 
-  /// Compute mean candle close.
-  /// Returns mean as ratio (percentage / 100).
-  pub fn mean(&self) -> Option<f64> {
-    let mut sum_spans = 0.0;
-    for candle in self.candles.iter() {
-      sum_spans += candle.close;
+  /// Find price extremes (highs and lows) in a given range of candles +/- the extreme candle.
+  pub fn find_engulfing_candle_reversals(&self, candle_range: usize) -> Vec<Reversal> {
+    let mut reversals = Vec::<Reversal>::new();
+    for (index, index_candle) in self.candles.iter().enumerate() {
+      if index < candle_range {
+        continue;
+      }
+      let previous_candle = &self.candles[index - 1];
+      let range = &self.candles[index - candle_range..index - 1];
+      let mut min_candle: &Candle = range.get(0).unwrap();
+      let mut max_candle: &Candle = range.get(0).unwrap();
+      for candle in range.iter() {
+        if candle.close <= min_candle.close {
+          min_candle = candle;
+        }
+        else if candle.close >= max_candle.close {
+          max_candle = candle;
+        }
+      }
+      if min_candle == previous_candle {
+        // check index_candle is bullish engulfing
+        debug!("Low: {:?}\t{:?}", min_candle.close, min_candle.date.as_string());
+        reversals.push(Reversal {
+          candle: index_candle.clone(),
+          reversal_type: ReversalType::Bottom,
+        });
+      }
+      else if max_candle == previous_candle {
+        // check index_candle is bearish engulfing
+        debug!("High: {:?}\t{:?}", max_candle.close, max_candle.date.as_string());
+        reversals.push(Reversal {
+          candle: index_candle.clone(),
+          reversal_type: ReversalType::Top
+        });
+      }
     }
-    match self.candles.len() {
-      positive if positive > 0 => Some(sum_spans / self.candles.len() as f64),
-      _ => None
-    }
+    reversals
   }
 
-  /// Compute standard deviation for candle closes.
-  /// Returns std dev as ratio (percentage / 100).
-  fn std_dev(&self) -> Option<f64> {
+  /// Compute mean candle close for `self.period` candles back from `candle`.
+  pub fn mean(&self, candle: &Candle, period: usize) -> Option<f64> {
+    // search self.candles for candle,
+    // if index candle == candle and index > self.period, return index
+    // else return None
+    for (index, index_candle) in self.candles.iter().enumerate() {
+      if index_candle == candle && index >= period {
+        let range = &self.candles[(index-period)..index];
+        let mut sum = 0.0;
+        for candle in range.iter() {
+          sum += candle.close;
+        }
+        return Some(sum / range.len() as f64);
+      }
+    }
+    None
+  }
+
+  /// Compute standard deviation of a candle close for `self.period` candles back from `candle`.
+  fn std_dev(&self, candle: &Candle, period: usize) -> Option<f64> {
     if !self.candles.is_empty() {
-      match self.mean() {
-        Some(mean_vol) => {
+      match self.mean(candle, period) {
+        Some(mean_price) => {
+          let start_index = self.candles.len() - 1 - period;
           let variance = self.candles.iter().map(|candle| {
-            let diff = mean_vol - ((candle.high / candle.low) as f64);
+            let diff = mean_price - candle.close;
             diff * diff
           }).sum::<f64>() / self.candles.len() as f64;
 
@@ -221,17 +359,24 @@ impl TickerData {
     }
   }
 
-  /// Compute Z-Score for a candle close.
+  /// Compute Z-Score of a candle for `self.period` candles back from `candle`.
   /// Z-Score is the number of standard deviations a candle's close spans away from the mean of the data set.
   /// >3 standard deviations is significant.
-  pub fn z_score(&self, candle: &Candle) -> Option<f64> {
+  pub fn z_score(&self, candle: &Candle, period: usize) -> Option<f64> {
     if !self.candles.is_empty() {
-      let mean = self.mean().expect("Mean is not defined");
-      let std_dev = self.std_dev().expect("Std dev is not defined");
+      let mean = self.mean(candle, period).expect("Mean is not defined");
+      let std_dev = self.std_dev(candle, period).expect("Std dev is not defined");
       let z_score = (candle.close - mean) / std_dev;
       Some(z_score)
     } else {
       None
     }
+  }
+
+  /// Remove duplicate Candles from the data set.
+  pub fn remove_duplicate_reversals(mut signals: Vec<Reversal>) -> Vec<Reversal> {
+    signals.sort_by(|a, b| a.candle.date.partial_cmp(&b.candle.date).expect("failed to compare dates"));
+    signals.dedup_by(|a, b| a.candle.date == b.candle.date);
+    signals
   }
 }

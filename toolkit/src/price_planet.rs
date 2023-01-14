@@ -38,9 +38,8 @@ impl PricePlanet {
     let dimension = 2001;
     let origin = 1;
     let square_of_nine = SquareOfNine::new(origin, square_of_nine_step, dimension);
-    //let earliest_candle_date = &ticker_data.get_candles()[0].date;
-    //let time_period = Time::today().diff_days(earliest_candle_date);
-    let time_period = -300;
+    let earliest_candle_date = &ticker_data.get_candles()[0].date;
+    let time_period = Time::today().diff_days(earliest_candle_date);
 
     let harmonics = Alignment::iter().iter().map(|a| a.to_num()).collect::<Vec<f32>>();
 
@@ -51,9 +50,9 @@ impl PricePlanet {
         Origin::Geocentric,
         planet,
         DataType::RightAscension,
-        Time::today(),
-        time_period
-      ).await;
+        earliest_candle_date.clone(),
+        Time::today()
+      ).await.expect("failed to query planet angles");
       planet_longitudes.push(PlanetLongitudes {
         planet: planet.clone(),
         angles
