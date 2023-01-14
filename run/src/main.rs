@@ -86,14 +86,14 @@ async fn main() {
     &PathBuf::from(SOLAR_ECLIPSE_CSV),
     &PathBuf::from(LUNAR_ECLIPSE_CSV)
   );
-  println!("----------------------------------------------------------------------------------------");
-  println!("\t\t### PLANET SELF ALIGNMENT IN TWO ECLIPSES ###\t\t");
-  eclipses.find_planet_self_alignment_in_two_eclipses(
-    Time::new(2019, &Month::from_num(1), &Day::from_num(1)),
-    Time::new(2024, &Month::from_num(1), &Day::from_num(1)),
-    1,
-    1.5,
-  ).await;
+  // println!("----------------------------------------------------------------------------------------");
+  // println!("\t\t### PLANET SELF ALIGNMENT IN TWO ECLIPSES ###\t\t");
+  // eclipses.find_planet_self_alignment_in_two_eclipses(
+  //   Time::new(2019, &Month::from_num(1), &Day::from_num(1)),
+  //   Time::new(2024, &Month::from_num(1), &Day::from_num(1)),
+  //   1,
+  //   1.5,
+  // ).await;
   // println!("----------------------------------------------------------------------------------------");
   // println!("\t\t### PLANET EQUATOR CROSS IN TWO ECLIPSES ###\t\t");
   // eclipses.find_planet_equator_cross_in_two_eclipses(
@@ -101,6 +101,13 @@ async fn main() {
   //   Time::today(),
   //   1
   // ).await;
+  println!("----------------------------------------------------------------------------------------");
+  println!("\t\t### PLANET PAIR ALIGNMENTS ON ECLIPSE ###\t\t");
+  eclipses.find_planet_matrix_alignments_on_eclipse(
+    Time::new(2017, &Month::from_num(1), &Day::from_num(1)),
+    Time::new(2024, &Month::from_num(1), &Day::from_num(1)),
+    1.5,
+  ).await;
 
 
 }

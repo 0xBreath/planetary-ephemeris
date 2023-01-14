@@ -26,13 +26,13 @@ impl PlanetEquatorCrossTwoEclipses {
 }
 
 #[derive(Clone, Debug)]
-pub struct PlanetSelfRelativeAlignmentTwoEclipses {
+pub struct PlanetSelfAlignmentTwoEclipses {
   pub planet: Planet,
   pub first_eclipse: EclipseEvent,
   pub second_eclipse: EclipseEvent,
   pub alignment: Alignment,
 }
-impl PlanetSelfRelativeAlignmentTwoEclipses {
+impl PlanetSelfAlignmentTwoEclipses {
   pub fn new(
     planet: Planet,
     first_eclipse: EclipseEvent,
@@ -44,6 +44,30 @@ impl PlanetSelfRelativeAlignmentTwoEclipses {
       first_eclipse,
       second_eclipse,
       alignment,
+    }
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct PlanetPairAlignmentOnEclipse {
+  pub planet_pair: (Planet, Planet),
+  pub alignment: Alignment,
+  pub date: Time,
+  pub eclipse: EclipseEvent,
+}
+impl PlanetPairAlignmentOnEclipse {
+  pub fn new(
+    planet_a: Planet,
+    planet_b: Planet,
+    alignment: Alignment,
+    date: Time,
+    eclipse: EclipseEvent,
+  ) -> Self {
+    Self {
+      planet_pair: (planet_a, planet_b),
+      alignment,
+      date,
+      eclipse,
     }
   }
 }
@@ -264,10 +288,10 @@ impl Eclipses {
     stop_time: Time,
     error_margin_days: i64,
     error_margin_degrees: f32,
-  ) -> Vec<PlanetSelfRelativeAlignmentTwoEclipses> {
+  ) -> Vec<PlanetSelfAlignmentTwoEclipses> {
     let planet_alignments = PlanetAlignments::new(start_time, stop_time).await;
 
-    let mut signals = Vec::<PlanetSelfRelativeAlignmentTwoEclipses>::new();
+    let mut signals = Vec::<PlanetSelfAlignmentTwoEclipses>::new();
     for (index, event) in self.events.iter().enumerate() {
       // find planet self alignments relative to EclipseEvent date
       // returns Ok if relative date is >= start date of planetary ephemerides
@@ -285,7 +309,7 @@ impl Eclipses {
             // If planet self relative alignment occurred within error margin of days of second eclipse
             // then we have a signal.
             if alignment.date.within_range(range_start, range_end) {
-              let signal = PlanetSelfRelativeAlignmentTwoEclipses::new(
+              let signal = PlanetSelfAlignmentTwoEclipses::new(
                 alignment.planet.clone(),
                 event.clone(),
                 second_event.clone(),
@@ -307,6 +331,44 @@ impl Eclipses {
     signals
   }
 
+
+  /// Find confluence between PlanetMatrix and EclipseEvents.
+  pub async fn find_planet_matrix_alignments_on_eclipse(
+    &self,
+    start_time: Time,
+    end_time: Time,
+    error_margin_degrees: f32
+  ) -> Vec<PlanetPairAlignmentOnEclipse> {
+    let mut planet_matrix = PlanetMatrix::new(
+      Origin::Geocentric,
+      &start_time,
+      &end_time,
+      error_margin_degrees
+    ).await;
+
+    let mut signals = Vec::<PlanetPairAlignmentOnEclipse>::new();
+    for event in self.events.iter() {
+      let planet_pair_alignments: Vec<PlanetPairAlignment> = planet_matrix.alignments_on_date(&event.date);
+      for alignment in planet_pair_alignments.iter() {
+        let signal = PlanetPairAlignmentOnEclipse {
+          planet_pair: alignment.planet_pair.clone(),
+          eclipse: event.clone(),
+          alignment: alignment.alignment.clone(),
+          date: alignment.date,
+        };
+        println!(
+          "{}-{}\t{}\t{}\t{:?}",
+          signal.planet_pair.0.to_str(),
+          signal.planet_pair.1.to_str(),
+          signal.eclipse.date.as_string(),
+          signal.date.as_string(),
+          signal.alignment.to_str(),
+        );
+        signals.push(signal);
+      }
+    }
+    signals
+  }
 
 }
 

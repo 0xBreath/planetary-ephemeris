@@ -6,6 +6,13 @@ use time_series::*;
 
 pub type Matrix = Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)>;
 
+#[derive(Debug, Clone)]
+pub struct PlanetPairAlignment {
+  pub planet_pair: (Planet, Planet),
+  pub alignment: Alignment,
+  pub date: Time
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlanetPairAlignmentWinRate {
   pub planet_1: Planet,
@@ -75,6 +82,23 @@ impl PlanetMatrix {
       start_date: *start_time,
       period_days
     }
+  }
+  
+  /// Search for all alignments on a given date.
+  pub fn alignments_on_date(&self, date: &Time) -> Vec<PlanetPairAlignment> {
+    let mut alignments = Vec::new();
+    for (planet_a, planet_b, vec) in self.matrix.iter() {
+      for (time, _, alignment) in vec.iter() {
+        if time == date {
+          alignments.push(PlanetPairAlignment {
+            planet_pair: (planet_a.clone(), planet_b.clone()),
+            alignment: alignment.clone(),
+            date: *time
+          });
+        }
+      }
+    }
+    alignments
   }
 
   /// Find the total count of each planet pair alignment
