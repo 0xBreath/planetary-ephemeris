@@ -37,7 +37,7 @@ impl MarketStructure {
   /// Identify market structure in vector of reversals .
   /// by finding higher highs and higher lows for positive market structure,
   /// and lower highs and lower lows for negative market structure.
-  pub fn new(ticker_data: TickerData, candle_range: usize) -> Self {
+  pub fn new(ticker_data: &TickerData, candle_range: usize) -> Self {
     let mut trends = Vec::<Trend>::new();
     let reversals = ticker_data.find_reversals(candle_range);
     println!("First Candle: {:?}", ticker_data.candles[0].date.as_string());
@@ -222,7 +222,7 @@ impl MarketStructure {
     }
 
     Self {
-      candles: ticker_data.candles,
+      candles: ticker_data.candles.clone(),
       reversals,
       trends,
       latest_high,
@@ -233,7 +233,7 @@ impl MarketStructure {
 
   pub fn test_market_structure(candle_range: usize, results_file: &PathBuf) {
     let ticker_data = TickerData::new_from_csv(results_file);
-    let market_structure = MarketStructure::new(ticker_data, candle_range);
+    let market_structure = MarketStructure::new(&ticker_data, candle_range);
 
     match &market_structure.latest_high {
       Some(high) => println!("Latest High: {}", high.date.as_string()),

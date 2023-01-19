@@ -1,31 +1,34 @@
 use std::path::PathBuf;
 use toolkit::*;
 use time_series::*;
+#[allow(unused_imports)]
 use ephemeris::*;
+#[allow(unused_imports)]
 use csv::{Writer, WriterBuilder};
+#[allow(unused_imports)]
 use log::info;
 
 
-pub async fn planet_matrix_dataframe(
-  ticker_data_path: &PathBuf,
-  alignment_margin_error: f32,
-) {
-  let ticker_data = TickerData::new_from_csv(ticker_data_path);
-  if ticker_data.candles.is_empty() {
-    return
-  }
-  let earliest_candle_date = &ticker_data.get_candles()[0].date;
-  let latest_candle_date = &ticker_data.get_candles()[ticker_data.get_candles().len() - 1].date;
-
-  let planet_matrix = PlanetMatrix::new(
-    Origin::Geocentric,
-    &Time::new(2022, &Month::December, &Day::ThirtyOne),
-    latest_candle_date,
-    alignment_margin_error
-  ).await;
-
-  // TODO: iterate PlanetMatrix and organize/label by alignment, planet pair, and date
-}
+// pub async fn planet_matrix_dataframe(
+//   ticker_data_path: &PathBuf,
+//   alignment_margin_error: f32,
+// ) {
+//   let ticker_data = TickerData::new_from_csv(ticker_data_path);
+//   if ticker_data.candles.is_empty() {
+//     return
+//   }
+//   let earliest_candle_date = &ticker_data.get_candles()[0].date;
+//   let latest_candle_date = &ticker_data.get_candles()[ticker_data.get_candles().len() - 1].date;
+//
+//   let planet_matrix = PlanetMatrix::new(
+//     Origin::Geocentric,
+//     &Time::new(2022, &Month::December, &Day::ThirtyOne),
+//     latest_candle_date,
+//     alignment_margin_error
+//   ).await;
+//
+//   // TODO: iterate PlanetMatrix and organize/label by alignment, planet pair, and date
+// }
 
 
 /// CSV dataframe format:
@@ -36,12 +39,10 @@ pub async fn planet_matrix_dataframe(
 ///
 /// planet -> 0 when no signal, else `Planet::to_num() + 1`
 pub async fn retrograde_dataframe(
-  ticker_symbol: String,
-  start_date: Time,
-  end_date: Time,
-  results_csv_path: &PathBuf
+  ticker_data_file_path: &PathBuf,
+  results_csv_path: &PathBuf,
 ) {
-  let ticker_data = TickerData::new(ticker_symbol, start_date, end_date).await;
+  let ticker_data = TickerData::new_from_csv(ticker_data_file_path);
   if ticker_data.candles.is_empty() {
     return
   }
@@ -49,9 +50,12 @@ pub async fn retrograde_dataframe(
   println!("earliest_date: {}", earliest_date.as_string());
   let latest_date = &ticker_data.latest_date();
   println!("latest_date: {}", latest_date.as_string());
-  let max_history_days = latest_date.diff_days(earliest_date);
 
-  let retrograde = Retrograde::new(ticker_data.clone(), **earliest_date, **latest_date).await;
+  let retrograde = Retrograde::new(
+    **earliest_date,
+    **latest_date,
+    &Planet::to_vec()
+  ).await.unwrap();
 
   // dataframe format:
   // date: Time
@@ -67,7 +71,7 @@ pub async fn retrograde_dataframe(
   wtr.write_record(None::<&[u8]>).expect("failed to write record");
   wtr.flush().expect("failed to flush csv writer");
 
-  for candle in retrograde.ticker_data.get_candles().iter() {
+  for candle in ticker_data.get_candles().iter() {
     // search for retrograde events on this candle date
     let mut signal_on_date = false;
     for event in retrograde.retrogrades.iter() {

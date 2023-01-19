@@ -1,4 +1,3 @@
-
 use std::path::PathBuf;
 use log::LevelFilter;
 use simplelog::{
@@ -6,6 +5,7 @@ use simplelog::{
 };
 #[allow(unused_imports)]
 use ephemeris::*;
+#[allow(unused_imports)]
 use time_series::*;
 use toolkit::*;
 
@@ -19,96 +19,67 @@ async fn main() {
   //   println!("{}\t{}", reversal.candle.date.as_string(), reversal.reversal_type.as_string());
   // }
 
+  // println!("----------------------------------------------------------------------------------------");
   // println!("\t\t### PLANET PAIR ALIGNMENTS FOR PERIOD ###\t\t");
   // let planet_matrix = PlanetMatrix::new(
   //   Origin::Geocentric,
-  //   &Time::today(),
-  //   -200,
-  //   1.0
-  // ).await;
-  // planet_matrix.print_alignments(&PathBuf::from(PLANET_MATRIX_RESULTS_PATH));
-  // println!("----------------------------------------------------------------------------------------");
+  //   &Time::new(2013, &Month::from_num(1), &Day::from_num(1)),
+  //   &Time::new(2023, &Month::from_num(1), &Day::from_num(1)),
+  //   1.0,
+  //   Planet::to_vec(),
+  //   Alignment::to_vec()
+  // ).await.unwrap();
+  // let planet_filter = Planet::to_vec(); //vec![Planet::Venus, Planet::Uranus];
+  // let alignment_filter = vec![
+  //   Alignment::Conjunct, Alignment::Opposite,
+  //   Alignment::Square90, Alignment::Square270,
+  //   Alignment::Trine120, Alignment::Trine240
+  // ];
+  // let filtered_matrix = planet_matrix.filter_matrix(1, planet_filter, alignment_filter);
+  // planet_matrix.print_filtered_matrix(filtered_matrix);
 
-  // println!("\t\t### PLANET PAIR ALIGNMENT MATRIX ###\t\t");
-  // PlanetMatrix::test_planet_matrix(
-  //   &PathBuf::from(TICKER_DATA_PATH),
-  //   2,
-  //   5.0,
-  //   10
-  // ).await;
-
-  // println!("----------------------------------------------------------------------------------------");
-  // println!("\t\t### PLANET ENTER/EXIT RETROGRADE ###\t\t");
-  // let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
-  // let retrograde = Retrograde::new(ticker_data).await;
-  // retrograde.backtest(20);
-  // println!("----------------------------------------------------------------------------------------");
-  // println!("\t\t### PLANET ZERO DECLINATION CROSS ###\t\t");
-  // PlanetEquatorCrosses::test_declinations(
-  //   Time::today(),
-  //   5,
-  //   0,
-  // ).await;
   // println!("----------------------------------------------------------------------------------------");
   // println!("\t\t### SQUARE OF NINE ###\t\t");
-  // SquareOfNine::test_square_of_nine();
-  // println!("----------------------------------------------------------------------------------------");
-  // println!("\t\t### IDENTIFY MARKET STRUCTURE ###\t\t");
-  // MarketStructure::test_market_structure(5, &PathBuf::from(TICKER_DATA_PATH));
-  // println!("----------------------------------------------------------------------------------------");
+  // SquareOfNine::test_square_of_nine(41);
 
+  // println!("----------------------------------------------------------------------------------------");
   // let price_planet = PricePlanet::new(
-  //   PathBuf::from(TICKER_DATA_PATH),
   //   PathBuf::from(PRICE_PLANET_RESULTS_PATH),
-  //   10,
-  //   100.0,
-  // ).await;
+  //   5,
+  //   0.1,
+  //   0.01,
+  //   Time::new(2019, &Month::from_num(7), &Day::from_num(1)),
+  //   Time::new(2020, &Month::from_num(1), &Day::from_num(1)),
+  // ).await.unwrap();
+  // // println!("\t\t### SINGLE PRICE PLANET HARMONICS ###\t\t");
+  // // price_planet.single_signal(0.02, 1).await;
   // println!("\t\t### CONFLUENT PRICE PLANET HARMONICS ###\t\t");
-  // price_planet.confluent_signals(0.005, 0).await;
+  // price_planet.confluent_signals(0.02, 1).await;
 
-  // println!();
-  // println!("\t\t### SINGLE PRICE PLANET HARMONICS ###\t\t");
-  //price_planet.single_signal(0.005, 0).await;
+  // println!("----------------------------------------------------------------------------------------");
+  // println!("\t\t### RETROGRADE ###\t\t");
+  // let retrograde = Retrograde::new(
+  //   Time::new(2015, &Month::from_num(1), &Day::from_num(1)),
+  //   Time::new(2023, &Month::from_num(3), &Day::from_num(1)),
+  //   &vec![Planet::Sun, Planet::Mercury, Planet::Venus, Planet::Mars, Planet::Jupiter, Planet::Saturn, Planet::Uranus, Planet::Neptune, Planet::Pluto],
+  // ).await.unwrap();
+  // // retrograde.backtest(10, 1.0, 2).await.unwrap();
+  // retrograde.confluent_retrograde(2);
 
-  // dataframe::retrograde_dataframe(
-  //   "BITCOIN".to_string(),
-  //   Time::new(2023, &Month::from_num(1), &Day::from_num(1)),
-  //   Time::today(),
-  //   &PathBuf::from(RETROGRADE_RESULTS_CSV)
-  // ).await;
-
-  // dataframe::ticker_dataframe(
-  //   &PathBuf::from(TICKER_DATA_PATH),
-  //   &PathBuf::from(TICKER_DATAFRAME_CSV)
-  // ).await;
-
+  // println!("----------------------------------------------------------------------------------------");
+  println!("\t\t### ECLIPSE CONFLUENT SIGNALS ###\t\t");
   let eclipses = Eclipses::new(
     &PathBuf::from(SOLAR_ECLIPSE_CSV),
     &PathBuf::from(LUNAR_ECLIPSE_CSV)
   );
-  // println!("----------------------------------------------------------------------------------------");
-  // println!("\t\t### PLANET SELF ALIGNMENT IN TWO ECLIPSES ###\t\t");
-  // eclipses.find_planet_self_alignment_in_two_eclipses(
-  //   Time::new(2019, &Month::from_num(1), &Day::from_num(1)),
-  //   Time::new(2024, &Month::from_num(1), &Day::from_num(1)),
-  //   1,
-  //   1.5,
-  // ).await;
-  // println!("----------------------------------------------------------------------------------------");
-  // println!("\t\t### PLANET EQUATOR CROSS IN TWO ECLIPSES ###\t\t");
-  // eclipses.find_planet_equator_cross_in_two_eclipses(
-  //   Time::new(1990, &Month::from_num(1), &Day::from_num(1)),
-  //   Time::today(),
-  //   1
-  // ).await;
-  println!("----------------------------------------------------------------------------------------");
-  println!("\t\t### PLANET PAIR ALIGNMENTS ON ECLIPSE ###\t\t");
-  eclipses.find_planet_matrix_alignments_on_eclipse(
-    Time::new(2017, &Month::from_num(1), &Day::from_num(1)),
-    Time::new(2024, &Month::from_num(1), &Day::from_num(1)),
-    1.5,
-  ).await;
-
+  eclipses.test_confluence(
+    Time::new(2013, &Month::from_num(1), &Day::from_num(1)),
+    Time::new(2023, &Month::from_num(1), &Day::from_num(1)),
+    3,
+    1.0,
+    vec![Planet::Sun, Planet::Jupiter, Planet::Saturn, Planet::Uranus, Planet::Neptune, Planet::Pluto],
+    vec![Alignment::Conjunct, Alignment::Opposite, Alignment::Square90, Alignment::Square270, Alignment::Trine120, Alignment::Trine240],
+  ).await.unwrap();
 
 }
 

@@ -18,8 +18,8 @@ impl Query {
     origin: Origin,
     planet: &Planet,
     data_type: DataType,
-    mut start_time: Time,
-    mut stop_time: Time,
+    start_time: Time,
+    stop_time: Time,
   ) -> Result<Vec<(Time, f32)>, Error> {
     // swap start and stop time if period is historical rather than for the future
     if start_time.diff_days(&stop_time) < 0 {

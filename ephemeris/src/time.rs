@@ -42,6 +42,18 @@ impl Time {
     }
   }
 
+  pub fn from_quandl_api_date_format(date: &str) -> Self {
+    let year = date[..4].parse::<i32>().unwrap();
+    let month = Month::from_num(date[5..7].parse::<u32>().unwrap());
+    let day = Day::from_num(date[8..10].parse::<u32>().unwrap());
+
+    Self {
+      year,
+      month,
+      day,
+    }
+  }
+
   pub fn as_string(&self) -> String {
     format!("{}-{}-{}", self.year, self.month.to_string(), self.day.to_string())
   }

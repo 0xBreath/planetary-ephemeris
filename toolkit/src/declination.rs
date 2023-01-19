@@ -66,8 +66,6 @@ impl PlanetEquatorCrosses {
 
   pub async fn test_declinations(start_date: Time, stop_date: Time, candle_range: usize, error_margin_days: i64) {
     let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
-    let earliest_date = ticker_data.get_candles()[0].date;
-    let period_days = Time::today().diff_days(&earliest_date);
     let reversals = ticker_data.find_reversals(candle_range);
     let declinations = PlanetEquatorCrosses::new(start_date, stop_date).await;
 

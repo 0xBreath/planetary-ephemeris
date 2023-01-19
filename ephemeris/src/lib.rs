@@ -23,3 +23,4 @@ pub const RETROGRADE_RESULTS_CSV: &str = "retrograde_results.csv";
 pub const TICKER_DATAFRAME_CSV: &str = "ticker_dataframe.csv";
 pub const SOLAR_ECLIPSE_CSV: &str = "./solar_eclipse.csv";
 pub const LUNAR_ECLIPSE_CSV: &str = "./lunar_eclipse.csv";
+pub const ECLIPSES_CSV: &str = "./eclipses.csv";

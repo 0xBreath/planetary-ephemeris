@@ -342,8 +342,10 @@ impl SquareOfNine {
     points
   }
 
-  pub fn test_square_of_nine() {
-    let dimension = 11;
+  pub fn test_square_of_nine(dimension: u32) {
+    if dimension % 2 == 0 {
+      panic!("Dimension must be odd");
+    }
     let square_of_nine = SquareOfNine::new(1, 1.0, dimension);
     if dimension < 13 {
       for y in square_of_nine.matrix.iter() {
@@ -390,27 +392,27 @@ impl SquareOfNine {
         Some(Harmonic::SevenEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
       }
     }
-    println!("--------------------------------------------------------------------------------------------------------");
-    let harmonics_zero = square_of_nine.find_price_equals_time(0.0);
-    println!("ZERO HARMONICS");
-    for point in harmonics_zero.iter() {
-      match point.harmonic {
-        None => {
-          match point.arc {
-            None => println!("{:?}\t{:?}\t\t\t{}\r", point.value, point.harmonic, "-"),
-            Some(arc) => println!("{:?}\t{:?}\t\t\t{:?}\r", point.value, point.harmonic, arc),
-          }
-        },
-        Some(Harmonic::Zero) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::OneEighth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::OneFourth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::ThreeEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::OneHalf) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::FiveEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::ThreeFourths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-        Some(Harmonic::SevenEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
-      }
-    }
+    // println!("--------------------------------------------------------------------------------------------------------");
+    // let harmonics_zero = square_of_nine.find_price_equals_time(0.0);
+    // println!("ZERO HARMONICS");
+    // for point in harmonics_zero.iter() {
+    //   match point.harmonic {
+    //     None => {
+    //       match point.arc {
+    //         None => println!("{:?}\t{:?}\t\t\t{}\r", point.value, point.harmonic, "-"),
+    //         Some(arc) => println!("{:?}\t{:?}\t\t\t{:?}\r", point.value, point.harmonic, arc),
+    //       }
+    //     },
+    //     Some(Harmonic::Zero) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::OneEighth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::OneFourth) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::ThreeEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::OneHalf) => println!("{:?}\t{:?}\t\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::FiveEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::ThreeFourths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //     Some(Harmonic::SevenEighths) => println!("{:?}\t{:?}\t{:?}\r", point.value, point.harmonic, point.arc.unwrap()),
+    //   }
+    // }
   }
 
   /// Check if value is within margin of error of a target.
@@ -428,8 +430,9 @@ impl SquareOfNine {
     let mut point_index = 0;
     let mut point_value = 0.0;
     let mut found = false;
+
     for (index, point) in self.values.iter().enumerate() {
-      if value == point.value {
+      if SquareOfNine::within_margin_of_error(value, point.value, 0.01) {
         match point.arc {
           None => ring_size = None,
           Some(arc) => {

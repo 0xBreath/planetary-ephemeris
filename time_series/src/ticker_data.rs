@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::path::PathBuf;
 use csv;
-use log::{debug, info};
-use ephemeris::{Day, Month, Time};
+use log::debug;
+use ephemeris::Time;
 use crate::*;
 
 #[derive(Debug, Clone)]
@@ -73,28 +73,47 @@ impl TickerData {
     Self { candles: data }
   }
 
-  // pub async fn new(ticker_symbol: TickerSymbol, start_date: Time, end_date: Time) -> Self {
-  //   let polygon = PolygonApiWrapper::new(ticker_symbol, start_date, end_date).await;
-  //
-  //   let bars = polygon.response["results"].as_array().unwrap();
-  //   let mut candles = Vec::<Candle>::new();
-  //   for bar in bars.iter() {
-  //     candles.push(Candle {
-  //       date: Time::from_unix_msec(bar["t"].as_i64().unwrap()),
-  //       open: bar["o"].as_f64().unwrap(),
-  //       high: bar["h"].as_f64().unwrap(),
-  //       low: bar["l"].as_f64().unwrap(),
-  //       close: bar["c"].as_f64().unwrap(),
-  //     });
-  //   }
-  //
-  //   Self { candles }
-  // }
+  /// Limited to 2 years of historical date (free plan)
+  pub async fn new_polygon_api(ticker_symbol: TickerSymbol, start_date: Time, end_date: Time) -> Self {
+    let polygon = PolygonApiWrapper::new(ticker_symbol, start_date, end_date).await;
 
-  pub async fn new(ticker_symbol: String, start_date: Time, end_date: Time) -> Self {
-    let quandl = QuandlApiWrapper::new(ticker_symbol, start_date, end_date).await;
+    let bars = polygon.response["results"].as_array().unwrap();
+    let mut candles = Vec::<Candle>::new();
+    for bar in bars.iter() {
+      candles.push(Candle {
+        date: Time::from_unix_msec(bar["t"].as_i64().unwrap()),
+        open: bar["o"].as_f64().unwrap(),
+        high: bar["h"].as_f64().unwrap(),
+        low: bar["l"].as_f64().unwrap(),
+        close: bar["c"].as_f64().unwrap(),
+      });
+    }
 
-    Self { candles: Vec::new() }
+    Self { candles }
+  }
+
+  pub async fn new_quandl_api(start_date: Time, end_date: Time, factor: f64) -> Self {
+    let quandl = QuandlApiWrapper::new(start_date, end_date).await;
+    let mut data = Self { candles: quandl.candles };
+    data = data.scale(factor);
+    data
+  }
+
+  pub fn from_candles(candles: Vec<Candle>) -> Self {
+    Self { candles }
+  }
+
+  pub fn scale(&self, factor: f64) -> Self {
+    let mut candles = Vec::<Candle>::new();
+    for candle in self.candles.iter() {
+      let mut copy = candle.clone();
+      copy.open *= factor;
+      copy.high *= factor;
+      copy.low *= factor;
+      copy.close *= factor;
+      candles.push(copy);
+    }
+    Self::from_candles(candles)
   }
 
   /// Get reference to `Vec<Candle>` from `TickerData`.

@@ -49,13 +49,11 @@ impl PolygonApiWrapper {
       start_date.as_string(), end_date.as_string(),
       POLYGON_API_KEY
     );
-    println!("{}", query);
     let data = reqwest::get(query).await.expect("failed to get response from polygon api")
       .text().await.expect("failed to get text from polygon api response");
 
     let response: serde_json::Value = serde_json::from_str(data.as_str())
       .expect("failed to parse Polygon API response into JSON");
-    println!("{:?}", response);
 
     Self {
       ticker,

@@ -20,6 +20,7 @@ pub struct PlanetSelfAlignments {
 pub struct PlanetAlignments {
   pub earliest_date: Time,
   pub latest_date: Time,
+  /// Vector follow `Planet::to_vec()` order
   pub planet_angles: Vec<Vec<(Time, f32)>>
 }
 

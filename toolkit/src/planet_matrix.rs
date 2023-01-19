@@ -5,6 +5,8 @@ use ephemeris::*;
 use time_series::*;
 
 pub type Matrix = Vec<(Planet, Planet, Vec<(Time, f32, Alignment)>)>;
+pub type ConfluentMatrix = Vec<(Time, Vec<PlanetPairAlignment>)>;
+pub type FilteredMatrix = Vec<PlanetPairAlignment>;
 
 #[derive(Debug, Clone)]
 pub struct PlanetPairAlignment {
@@ -30,7 +32,7 @@ pub struct PlanetMatrix {
   /// The start date of the planet positions
   pub start_date: Time,
   /// The number of days +/- start_time to query for planet positions.
-  pub period_days: i64,
+  pub end_date: Time,
 }
 impl PlanetMatrix {
   /// Compare geocentric right ascension of two planets.
@@ -40,8 +42,15 @@ impl PlanetMatrix {
     start_time: &Time,
     end_time: &Time,
     alignment_margin_error: f32,
-  ) -> Self {
-    let planets = Planet::to_vec();
+    planets: &Vec<Planet>,
+    harmonics: &Vec<Alignment>
+  ) -> std::io::Result<Self> {
+    if start_time.diff_days(end_time) < 1 {
+      return Err(std::io::Error::new(
+        std::io::ErrorKind::InvalidInput,
+        "Start time must be before end time.",
+      ));
+    }
     let mut matrix: Matrix = Vec::new();
 
     let mut planet_alignments = Vec::new();
@@ -69,21 +78,23 @@ impl PlanetMatrix {
           let angle = (planet_a_ra - planet_b_ra).abs();
           let alignment = Alignment::find_alignment(*planet_a_ra, *planet_b_ra, alignment_margin_error);
           if let Some(alignment) = alignment {
-            vec.push((*time, angle, alignment));
+            if harmonics.contains(&alignment) {
+              vec.push((*time, angle, alignment));
+            }
           }
         }
         vec = Query::remove_duplicate_values(&mut vec);
+        vec.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         matrix.push((planet_a.clone(), planet_b.clone(), vec));
       }
     }
-    let period_days = start_time.diff_days(end_time);
-    Self {
+    Ok(Self {
       matrix,
       start_date: *start_time,
-      period_days
-    }
+      end_date: *end_time
+    })
   }
-  
+
   /// Search for all alignments on a given date.
   pub fn alignments_on_date(&self, date: &Time) -> Vec<PlanetPairAlignment> {
     let mut alignments = Vec::new();
@@ -99,6 +110,59 @@ impl PlanetMatrix {
       }
     }
     alignments
+  }
+
+  pub fn filter_matrix(&self, error_margin_days: u64, planet_filter: Vec<Planet>, alignment_filter: Vec<Alignment>) -> Vec<PlanetPairAlignment> {
+    let mut filtered_matrix = Vec::<PlanetPairAlignment>::new();
+    for (planet_a, planet_b, alignments) in self.matrix.iter() {
+      if planet_filter.contains(planet_a) && planet_filter.contains(planet_b) {
+        for (time, _, alignment) in alignments.iter() {
+          if alignment_filter.contains(alignment) {
+            filtered_matrix.push(PlanetPairAlignment {
+              planet_pair: (planet_a.clone(), planet_b.clone()),
+              alignment: alignment.clone(),
+              date: *time
+            });
+          }
+        }
+      }
+    }
+    filtered_matrix
+  }
+
+  pub fn confluent_matrix(&self, error_margin_days: u64, confluence_requirement: usize) -> ConfluentMatrix {
+    // guaranteed to be >0 as an i64 because of check in Self::new()
+    let period = self.start_date.diff_days(&self.end_date) as u64;
+
+    let mut all_alignments: ConfluentMatrix = Vec::new();
+    for index in 0..period {
+      if index < error_margin_days || index > period - error_margin_days {
+        continue;
+      }
+      let date = self.start_date.delta_date(index as i64);
+      let mut date_alignments = Vec::<PlanetPairAlignment>::new();
+      for range_index in (index - error_margin_days)..(index + error_margin_days + 1) {
+        let range_date = self.start_date.delta_date(range_index as i64);
+        let range_alignments = self.alignments_on_date(&range_date);
+        date_alignments.extend(range_alignments);
+      }
+      if date_alignments.len() >=confluence_requirement {
+        all_alignments.push((date, date_alignments));
+      }
+    }
+    all_alignments
+  }
+
+  pub fn print_confluent_matrix(&self, confluent_matrix: ConfluentMatrix) {
+    for (date, confluent_alignments) in confluent_matrix.iter() {
+      println!("{}\t{:?}", date.as_string(), confluent_alignments.len());
+    }
+  }
+
+  pub fn print_filtered_matrix(&self, filtered_matrix: FilteredMatrix) {
+    for ppa in filtered_matrix.iter() {
+      println!("{}-{}\t{}\t{:?}", ppa.planet_pair.0.to_str(), ppa.planet_pair.1.to_str(), ppa.date.as_string(), ppa.alignment.to_str());
+    }
   }
 
   /// Find the total count of each planet pair alignment
@@ -129,7 +193,7 @@ impl PlanetMatrix {
           Alignment::Octile315 => alignment_counts[15] += 1,
         }
       }
-      for (index, alignment) in Alignment::iter().iter().enumerate() {
+      for (index, alignment) in Alignment::to_vec().iter().enumerate() {
         vec.push(PlanetPairAlignmentWinRate {
           planet_1: planet_a.clone(),
           planet_2: planet_b.clone(),
@@ -147,9 +211,8 @@ impl PlanetMatrix {
     let mut file = File::create(results_file).unwrap();
     println!("\t\t### PLANET MATRIX ###\t\t");
     writeln!(file, "\t\t### PLANET MATRIX ###\t\t").expect("failed to write planet alignment to file");
-    println!("Planet alignments for {} days from {}\n", self.period_days, self.start_date.as_string());
-    writeln!(file, "Planet alignments for {} days from {}\n", self.period_days, self.start_date.as_string())
-      .expect("failed to write planet alignment to file");
+    println!("Planet alignments from {} to {}\n", self.start_date.as_string(), self.end_date.as_string());
+    writeln!(file, "Planet alignments from {} to {}\n", self.start_date.as_string(), self.end_date.as_string()).expect("failed to write planet alignment to file");
     for (planet_a, planet_b, alignments) in self.matrix.iter() {
       for data in alignments.iter() {
         let (time, _, alignment) = data;
@@ -197,7 +260,14 @@ impl PlanetMatrix {
   /// A "win" is considered if the alignment occurred on the same day as a known reversal.
   /// Compute the win rate of each planet pair. How likely could the planet pair predict a reversal? (across all harmonics)
   /// Win rate is across all harmonics for a given planet pair.
-  pub async fn test_planet_matrix(ticker_data_path: &PathBuf, margin_of_error_days: u32, alignment_margin_error: f32, candle_range: usize) {
+  pub async fn test_planet_matrix(
+    ticker_data_path: &PathBuf,
+    margin_of_error_days: u32,
+    alignment_margin_error: f32,
+    candle_range: usize,
+    planets: &Vec<Planet>,
+    harmonics: &Vec<Alignment>,
+  ) {
     let ticker_data = TickerData::new_from_csv(ticker_data_path);
     let reversals = ticker_data.find_reversals(candle_range);
     if ticker_data.candles.is_empty() {
@@ -211,8 +281,10 @@ impl PlanetMatrix {
       Origin::Geocentric,
       earliest_candle_date,
       latest_candle_date,
-      alignment_margin_error
-    ).await;
+      alignment_margin_error,
+      planets,
+      harmonics
+    ).await.unwrap();
     println!("PLANET PAIR\tALIGNMENT\tWIN RATE\tWIN EVENTS\tTOTAL EVENTS");
 
     let alignment_counts = planet_matrix.build_planet_pair_alignment_counts();

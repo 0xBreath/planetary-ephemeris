@@ -1,6 +1,10 @@
+use std::path::PathBuf;
 use log::debug;
 use ephemeris::*;
 use time_series::*;
+
+
+pub type ConfluentRetrograde = (Time, Vec<RetrogradeEvent>);
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -15,14 +19,18 @@ pub struct RetrogradeEvent {
 #[derive(Debug, Clone)]
 pub struct Retrograde {
   pub retrogrades: Vec<RetrogradeEvent>,
-  pub ticker_data: TickerData,
+  pub start_date: Time,
+  pub end_date: Time
 }
 
 impl Retrograde {
   /// Search time period for retrograde events
-  pub async fn new(ticker_data: TickerData, start_date: Time, end_date: Time) -> Self {
+  pub async fn new(start_date: Time, end_date: Time, planets: &Vec<Planet>) -> std::io::Result<Self> {
+    if start_date > end_date {
+      return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Start date must be before end date"));
+    }
     let mut retrogrades = Vec::new();
-    for planet in Planet::to_vec().iter() {
+    for planet in planets.iter() {
       let daily_angles = Query::query(
         Origin::Geocentric,
         planet,
@@ -74,10 +82,35 @@ impl Retrograde {
         }
       }
     }
-    Self {
+    Ok(Self {
       retrogrades,
-      ticker_data
+      start_date,
+      end_date
+    })
+  }
+
+  // TODO: identify when >1 retrograde events happens within error margin of days
+  pub fn confluent_retrograde(&self, error_margin_days: u8) -> Vec<ConfluentRetrograde> {
+    // guaranteed to be positive i64 because of error catch in Self::new()
+    let period = self.start_date.diff_days(&self.end_date);
+    let mut confluent_retrogrades = Vec::<ConfluentRetrograde>::new();
+    for index in 0..period {
+      let date = self.start_date.delta_date(index);
+      let range_low = date.delta_date(-(error_margin_days as i64));
+      let range_high = date.delta_date(error_margin_days as i64);
+      let mut events_on_date = Vec::<RetrogradeEvent>::new();
+      for retrograde in self.retrogrades.iter() {
+        if retrograde.start_date.within_range(range_low, range_high)
+          || retrograde.end_date.within_range(range_low, range_high) {
+          events_on_date.push(retrograde.clone());
+        }
+      }
+      if events_on_date.len() > 1 {
+        confluent_retrogrades.push((date, events_on_date.clone()));
+        println!("{}\t{}", date.as_string(), events_on_date.len());
+      }
     }
+    confluent_retrogrades
   }
 
   pub fn is_retrograde(first: f32, second: f32) -> bool {
@@ -86,10 +119,21 @@ impl Retrograde {
 
   // TODO: correlate retrograde entry/exit with top/bottom reversal
   /// Search `Candle` history for reversals on retrograde start or end dates
-  pub fn backtest(&self, reversal_candle_range: usize) {
-    println!("Reversal defined by {} candles after reversal candle are higher/lower (could swing trade)", reversal_candle_range);
-    println!("Time period: {} days from today", Time::today().diff_days(&self.ticker_data.earliest_date()));
-    let reversals = self.ticker_data.find_reversals(reversal_candle_range);
+  pub async fn backtest(
+    &self,
+    reversal_candle_range: usize,
+    price_factor: f64,
+    error_margin_days: u8
+  ) -> std::io::Result<()> {
+    let ticker_data = TickerData::new_quandl_api(self.start_date, self.end_date, price_factor).await;
+    let start = &ticker_data.earliest_date();
+    let end = &ticker_data.latest_date();
+    println!("ticker data earliest date: {}", ticker_data.earliest_date().as_string());
+    println!("ticker data latest date: {}", ticker_data.latest_date().as_string());
+
+    println!("Reversal defined by +/- {} candles adjacent to reversal are higher/lower", reversal_candle_range);
+    println!("Time period: {} to {}", start.as_string(), end.as_string());
+    let reversals = ticker_data.find_reversals(reversal_candle_range);
 
     // iterate over reversals
     // iterate over retrograde events
@@ -101,9 +145,14 @@ impl Retrograde {
     let mut end_win_counts_bottom = vec![0; Planet::to_vec().len()];
     let mut total_counts = vec![0; Planet::to_vec().len()];
     for retrograde in self.retrogrades.iter() {
+      let start_date_margin_low = retrograde.start_date.delta_date(-(error_margin_days as i64));
+      let start_date_margin_high = retrograde.start_date.delta_date(error_margin_days as i64);
+      let end_date_margin_low = retrograde.end_date.delta_date(-(error_margin_days as i64));
+      let end_date_margin_high = retrograde.end_date.delta_date(error_margin_days as i64);
+
       let planet_index = Planet::to_vec().iter().position(|p| p == &retrograde.planet).unwrap();
       for reversal in reversals.iter() {
-        if retrograde.start_date == reversal.candle.date {
+        if reversal.candle.date.within_range(start_date_margin_low, start_date_margin_high) {
           match reversal.reversal_type {
             ReversalType::Top => start_win_counts_top[planet_index] += 1,
             ReversalType::Bottom => start_win_counts_bottom[planet_index] += 1,
@@ -111,7 +160,7 @@ impl Retrograde {
           println!("{}\tSTART\t{}", retrograde.planet.to_str(), retrograde.end_date.as_string());
           // retrograde event should only line up with one reversal candle, so break afterwards
           break;
-        } else if retrograde.end_date == reversal.candle.date {
+        } else if reversal.candle.date.within_range(end_date_margin_low, end_date_margin_high) {
           match reversal.reversal_type {
             ReversalType::Top => end_win_counts_top[planet_index] += 1,
             ReversalType::Bottom => end_win_counts_bottom[planet_index] += 1,
@@ -148,5 +197,6 @@ impl Retrograde {
         end_win_rate_top.round(), end_win_rate_bottom.round(), total_count
       );
     }
+    Ok(())
   }
 }

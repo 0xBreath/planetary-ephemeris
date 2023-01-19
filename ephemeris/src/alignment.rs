@@ -143,8 +143,8 @@ impl Alignment {
     }
   }
 
-  pub fn iter() -> &'static [Alignment] {
-    &[
+  pub fn to_vec() -> Vec<Alignment> {
+    vec![
       Alignment::Conjunct,
       Alignment::Opposite,
       Alignment::Trine120,
