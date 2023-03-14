@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use log::debug;
 use ephemeris::*;
 use crate::*;
+use time_series::Time;
 
 #[derive(Debug, Clone)]
 pub struct Eclipses {
@@ -110,62 +111,6 @@ impl Eclipses {
     signals
   }
 
-  /// Compare previous eclipses and determine if the same planet
-  /// is in `Alignment` with itself during a previous eclipse.
-  pub async fn planet_self_alignment_on_two_eclipses(
-    &self,
-    start_time: Time,
-    stop_time: Time,
-    error_margin_days: i64,
-    error_margin_degrees: f32,
-  ) -> Vec<PlanetSelfAlignmentTwoEclipses> {
-    let planet_alignments = PlanetAlignments::new(start_time, stop_time).await;
-
-    let mut signals = Vec::<PlanetSelfAlignmentTwoEclipses>::new();
-    for (index, event) in self.events.iter().enumerate() {
-      // find planet self alignments relative to EclipseEvent date
-      // returns Ok if relative date is >= start date of planetary ephemerides
-      if let Ok(relative_alignments) = planet_alignments
-        .self_relative_alignments(event.date, error_margin_degrees) {
-        // loop thru the rest of the events to find a relative alignment on another eclipse
-        for inner_index in index+1..self.events.len() {
-          let second_event = &self.events[inner_index];
-          let range_start = second_event.date.delta_date(-(error_margin_days));
-          let range_end = second_event.date.delta_date(error_margin_days);
-
-          for alignment in relative_alignments.alignments.iter() {
-            // a planet is in Alignment with itself on the second eclipse
-            // relative to its position on the first eclipse.
-            // If planet self relative alignment occurred within error margin of days of second eclipse
-            // then we have a signal.
-            if alignment.date.within_range(range_start, range_end) {
-              let signal = PlanetSelfAlignmentTwoEclipses::new(
-                alignment.planet.clone(),
-                event.clone(),
-                second_event.clone(),
-                alignment.alignment.clone(),
-              );
-              debug!(
-                "{}\t{}\t{}\t{:?}",
-                signal.planet.to_str(),
-                signal.first_eclipse.date.as_string(),
-                signal.second_eclipse.date.as_string(),
-                signal.alignment.to_str(),
-              );
-              signals.push(signal);
-            }
-          }
-        }
-      }
-    }
-    // sort by second eclipse date
-    signals.sort_by(|signal_1, signal_2|
-      signal_1.second_eclipse.date.partial_cmp(&signal_2.second_eclipse.date).expect("failed to sort PlanetSelfAlignmentTwoEclipses by date")
-    );
-    signals
-  }
-
-
   /// Find confluence between PlanetMatrix and EclipseEvents.
   pub async fn planet_matrix_alignments_on_eclipses(
     &self,
@@ -247,43 +192,6 @@ impl Eclipses {
     signals
   }
 
-  /// Search for planets ingressing to a new zodiac on an eclipse
-  pub async fn planet_ingress_on_eclipses(
-    &self,
-    start_date: Time,
-    end_date: Time,
-    error_margin_days: i64,
-    error_margin_degrees: f32,
-  ) -> Vec<PlanetIngressOnEclipse> {
-    let ingress = Ingress::new(start_date, end_date, error_margin_degrees).await;
-
-    let mut signals = Vec::<PlanetIngressOnEclipse>::new();
-    for eclipse in self.events.iter() {
-      for ingress_event in ingress.ingresses.iter() {
-        // ingress occurred within error margin of days from an eclipse.
-        if eclipse.date.within_range(
-          ingress_event.date.delta_date(-(error_margin_days)),
-          ingress_event.date.delta_date(error_margin_days)
-        ) {
-          debug!(
-            "{}\t{}\t{:?}\t{}",
-            ingress_event.planet.to_str(),
-            ingress_event.date.as_string(),
-            eclipse.kind,
-            ingress_event.zodiac.to_str()
-          );
-          let signal = PlanetIngressOnEclipse::new(
-            ingress_event.planet.clone(),
-            ingress_event.zodiac.clone(),
-            eclipse.clone(),
-          );
-          signals.push(signal);
-        }
-      }
-    }
-    signals
-  }
-
   // TODO: refactor to compare eclipse as equal to other other signals,
   //  so that we can use the same function for all signals.
   //  iterate through all dates in range, instead of filtering for eclipses.
@@ -303,13 +211,6 @@ impl Eclipses {
         "start_time must be before end_time",
       ));
     }
-    // println!("\t\t### PLANET SELF ALIGNMENT IN TWO ECLIPSES ###\t\t");
-    let eclipse_self_alignment: Vec<PlanetSelfAlignmentTwoEclipses> = self.planet_self_alignment_on_two_eclipses(
-      start_time,
-      end_time,
-      error_margin_days,
-      error_margin_degrees,
-    ).await;
     // println!("\t\t### PLANET EQUATOR CROSS IN TWO ECLIPSES ###\t\t");
     let eclipse_equator_cross: Vec<PlanetEquatorCrossTwoEclipses> = self.planet_equator_cross_on_two_eclipses(
       start_time,
@@ -331,13 +232,6 @@ impl Eclipses {
       error_margin_days,
       &planets
     ).await;
-    // println!("\t\t### PLANET ZODIAC INGRESS ON ECLIPSE ###\t\t");
-    let eclipse_ingress: Vec<PlanetIngressOnEclipse> = self.planet_ingress_on_eclipses(
-      start_time,
-      end_time,
-      error_margin_days,
-      error_margin_degrees
-    ).await;
 
     // find EclipseEvent at start_time and end_time to reduce iteration time
     let (start_index, _) = self.events.iter().enumerate().find(|(_, event) | {
@@ -357,26 +251,12 @@ impl Eclipses {
 
       let mut eclipse_signals = EclipseSignals {
         eclipse: eclipse.clone(),
-        ingress_signals: None,
         retrograde_signals: None,
         planet_pair_alignment_signals: None,
         self_alignment_signals: None,
         equator_cross_signals: None,
       };
 
-      for signal in eclipse_self_alignment.iter() {
-        if signal.second_eclipse.date.within_range(range_low, range_high) {
-          match &mut eclipse_signals.self_alignment_signals {
-            None => {
-              let vec = vec![signal.clone()];
-              eclipse_signals.self_alignment_signals = Some(vec);
-            },
-            Some(self_alignment_signals) => {
-              self_alignment_signals.push(signal.clone())
-            }
-          }
-        }
-      }
       for signal in eclipse_equator_cross.iter() {
         if signal.second_eclipse.date.within_range(range_low, range_high) {
           match &mut eclipse_signals.equator_cross_signals {
@@ -416,28 +296,11 @@ impl Eclipses {
           }
         }
       }
-      for signal in eclipse_ingress.iter() {
-        if signal.eclipse.date.within_range(range_low, range_high) {
-          match &mut eclipse_signals.ingress_signals {
-            None => {
-              let vec = vec![signal.clone()];
-              eclipse_signals.ingress_signals = Some(vec);
-            },
-            Some(ingress_signals) => {
-              ingress_signals.push(signal.clone())
-            }
-          }
-        }
-      }
       signals.push(eclipse_signals);
     }
 
-    println!("DATE\t\tRANK\tINGRESS\tRETRO\tMATRIX\tSELF");
+    println!("DATE\t\tRANK\tINGRESS\tRETRO\tMATRIX\tSELF\tDECLINATION");
     for signal in signals.iter() {
-      let ingress = match &signal.ingress_signals {
-        Some(signals) => signals.len(),
-        None => 0
-      };
       let retrograde = match &signal.retrograde_signals {
         Some(signals) => signals.len(),
         None => 0
@@ -450,7 +313,11 @@ impl Eclipses {
         Some(signals) => signals.len(),
         None => 0
       };
-      let signal_count = ingress + retrograde + planet_matrix + planet_self_alignment;
+      let equator_cross = match &signal.equator_cross_signals {
+        Some(signals) => signals.len(),
+        None => 0
+      };
+      let signal_count = retrograde + planet_matrix + planet_self_alignment + equator_cross;
 
       // only print confluent signals
       if signal_count > 0 {
@@ -458,10 +325,10 @@ impl Eclipses {
           "{}\t{}\t{}\t{}\t{}\t{}",
           signal.eclipse.date.as_string(),
           signal.eclipse.kind.to_rank(),
-          ingress,
           retrograde,
           planet_matrix,
-          planet_self_alignment
+          planet_self_alignment,
+          equator_cross
         );
       }
     }

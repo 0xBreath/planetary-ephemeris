@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use log::debug;
 use ephemeris::*;
-use time_series::{Direction, ReversalType, TickerData};
+use time_series::{Direction, ReversalType, TickerData, Time};
 
 
 #[derive(Clone, Debug)]
@@ -65,7 +65,8 @@ impl PlanetEquatorCrosses {
   }
 
   pub async fn test_declinations(start_date: Time, stop_date: Time, candle_range: usize, error_margin_days: i64) {
-    let ticker_data = TickerData::new_from_csv(&PathBuf::from(TICKER_DATA_PATH));
+    let mut ticker_data = TickerData::new();
+    ticker_data.add_csv_series(&PathBuf::from(TICKER_DATA_PATH)).expect("Failed to add CSV to TickerData");
     let reversals = ticker_data.find_reversals(candle_range);
     let declinations = PlanetEquatorCrosses::new(start_date, stop_date).await;
 

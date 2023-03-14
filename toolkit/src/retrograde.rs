@@ -117,86 +117,9 @@ impl Retrograde {
     second - first < 0.0
   }
 
-  // TODO: correlate retrograde entry/exit with top/bottom reversal
-  /// Search `Candle` history for reversals on retrograde start or end dates
-  pub async fn backtest(
-    &self,
-    reversal_candle_range: usize,
-    price_factor: f64,
-    error_margin_days: u8
-  ) -> std::io::Result<()> {
-    let ticker_data = TickerData::new_quandl_api(self.start_date, self.end_date, price_factor).await;
-    let start = &ticker_data.earliest_date();
-    let end = &ticker_data.latest_date();
-    println!("ticker data earliest date: {}", ticker_data.earliest_date().as_string());
-    println!("ticker data latest date: {}", ticker_data.latest_date().as_string());
-
-    println!("Reversal defined by +/- {} candles adjacent to reversal are higher/lower", reversal_candle_range);
-    println!("Time period: {} to {}", start.as_string(), end.as_string());
-    let reversals = ticker_data.find_reversals(reversal_candle_range);
-
-    // iterate over reversals
-    // iterate over retrograde events
-    // if `RetrogradeEvent` start_date or end_date is within margin of error of candle date
-    // reversal is considered a win
-    let mut start_win_counts_top = vec![0; Planet::to_vec().len()];
-    let mut start_win_counts_bottom = vec![0; Planet::to_vec().len()];
-    let mut end_win_counts_top = vec![0; Planet::to_vec().len()];
-    let mut end_win_counts_bottom = vec![0; Planet::to_vec().len()];
-    let mut total_counts = vec![0; Planet::to_vec().len()];
+  pub fn print(&self) {
     for retrograde in self.retrogrades.iter() {
-      let start_date_margin_low = retrograde.start_date.delta_date(-(error_margin_days as i64));
-      let start_date_margin_high = retrograde.start_date.delta_date(error_margin_days as i64);
-      let end_date_margin_low = retrograde.end_date.delta_date(-(error_margin_days as i64));
-      let end_date_margin_high = retrograde.end_date.delta_date(error_margin_days as i64);
-
-      let planet_index = Planet::to_vec().iter().position(|p| p == &retrograde.planet).unwrap();
-      for reversal in reversals.iter() {
-        if reversal.candle.date.within_range(start_date_margin_low, start_date_margin_high) {
-          match reversal.reversal_type {
-            ReversalType::Top => start_win_counts_top[planet_index] += 1,
-            ReversalType::Bottom => start_win_counts_bottom[planet_index] += 1,
-          }
-          println!("{}\tSTART\t{}", retrograde.planet.to_str(), retrograde.end_date.as_string());
-          // retrograde event should only line up with one reversal candle, so break afterwards
-          break;
-        } else if reversal.candle.date.within_range(end_date_margin_low, end_date_margin_high) {
-          match reversal.reversal_type {
-            ReversalType::Top => end_win_counts_top[planet_index] += 1,
-            ReversalType::Bottom => end_win_counts_bottom[planet_index] += 1,
-          }
-          println!("{}\tEND\t{}", retrograde.planet.to_str(), retrograde.end_date.as_string());
-          // retrograde event should only line up with one reversal candle, so break afterwards
-          break;
-        }
-      }
-      total_counts[planet_index] += 1;
+      println!("{}\t{}\t{}", retrograde.planet.to_str(), retrograde.start_date.as_string(), retrograde.end_date.as_string());
     }
-    println!("PLANET\t\tWIN RATE\tSTART TOP\tSTART BOTTOM\tEND TOP\t\tEND BOTTOM\tTOTAL COUNT");
-    for (index, planet) in Planet::to_vec().iter().enumerate() {
-      let start_win_count_top = start_win_counts_top[index];
-      let end_win_count_top = end_win_counts_top[index];
-      let start_win_count_bottom = start_win_counts_bottom[index];
-      let end_win_count_bottom = end_win_counts_bottom[index];
-      let total_count = total_counts[index];
-      let total_win_count_start = start_win_count_top + start_win_count_bottom;
-      let total_win_count_end = end_win_count_top + end_win_count_bottom;
-      let total_win_count = total_win_count_start + total_win_count_end;
-
-      let win_rate = (total_win_count as f32 / total_count as f32) * 100.0;
-      let _start_win_rate = (total_win_count_start as f32 / total_count as f32) * 100.0;
-      let _end_win_rate = (total_win_count_end as f32 / total_count as f32) * 100.0;
-      let start_win_rate_top = (start_win_count_top as f32 / total_count as f32) * 100.0;
-      let start_win_rate_bottom = (start_win_count_bottom as f32 / total_count as f32) * 100.0;
-      let end_win_rate_top = (end_win_count_top as f32 / total_count as f32) * 100.0;
-      let end_win_rate_bottom = (end_win_count_bottom as f32 / total_count as f32) * 100.0;
-      println!(
-        "{}\t\t{}%\t\t{}%\t\t{}%\t\t{}%\t\t{}%\t\t{}",
-        planet.to_str(), win_rate.round(),
-        start_win_rate_top.round(), start_win_rate_bottom.round(),
-        end_win_rate_top.round(), end_win_rate_bottom.round(), total_count
-      );
-    }
-    Ok(())
   }
 }

@@ -13,15 +13,25 @@ pub enum Harmonic {
 }
 impl Harmonic {
   fn next(&self) -> Self {
+    // match self {
+    //   Harmonic::Zero => Harmonic::SevenEighths,
+    //   Harmonic::OneEighth => Harmonic::Zero,
+    //   Harmonic::OneFourth => Harmonic::OneEighth,
+    //   Harmonic::ThreeEighths => Harmonic::OneFourth,
+    //   Harmonic::OneHalf => Harmonic::ThreeEighths,
+    //   Harmonic::FiveEighths => Harmonic::OneHalf,
+    //   Harmonic::ThreeFourths => Harmonic::FiveEighths,
+    //   Harmonic::SevenEighths => Harmonic::ThreeFourths,
+    // }
     match self {
-      Harmonic::Zero => Harmonic::SevenEighths,
-      Harmonic::OneEighth => Harmonic::Zero,
-      Harmonic::OneFourth => Harmonic::OneEighth,
-      Harmonic::ThreeEighths => Harmonic::OneFourth,
-      Harmonic::OneHalf => Harmonic::ThreeEighths,
-      Harmonic::FiveEighths => Harmonic::OneHalf,
-      Harmonic::ThreeFourths => Harmonic::FiveEighths,
-      Harmonic::SevenEighths => Harmonic::ThreeFourths,
+      Harmonic::Zero => Harmonic::OneEighth,
+      Harmonic::OneEighth => Harmonic::OneFourth,
+      Harmonic::OneFourth => Harmonic::ThreeEighths,
+      Harmonic::ThreeEighths => Harmonic::OneHalf,
+      Harmonic::OneHalf => Harmonic::FiveEighths,
+      Harmonic::FiveEighths => Harmonic::ThreeFourths,
+      Harmonic::ThreeFourths => Harmonic::SevenEighths,
+      Harmonic::SevenEighths => Harmonic::Zero,
     }
   }
 
@@ -142,7 +152,7 @@ impl SquareOfNine {
     let mut empty_harmonics = 0;
     // each new harmonic rotates/increments harmonic.
     // Starting harmonic is OneHalf and rotates counter-clockwise
-    let mut harmonic = Harmonic::OneHalf;
+    let mut harmonic = Harmonic::Zero;
     let mut angle = Angle::new(harmonic.to_num());
     // loop through matrix size
     // each index is used twice as the matrix spirals

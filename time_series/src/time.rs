@@ -1,7 +1,8 @@
 use std::cmp::Ordering;
-use chrono::{Datelike, DateTime, NaiveDate, TimeZone, Utc};
+use chrono::{Datelike, DateTime, NaiveDate, TimeZone, Utc, Weekday};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Time {
   pub year: i32,
   pub month: Month,
@@ -25,6 +26,22 @@ impl Time {
     }
   }
 
+  /// Create vector of Time starting at self and ending at end_date
+  pub fn time_period(&self, end_date: &Time) -> Vec<Time> {
+    let mut time_period = Vec::new();
+    let mut current_date = *self;
+    while current_date <= *end_date {
+      time_period.push(current_date);
+      current_date = current_date.delta_date(1);
+    }
+    time_period
+  }
+
+  pub fn is_weekend(&self) -> bool {
+    let weekday = self.to_naive_date().weekday();
+    weekday == Weekday::Sat || weekday == Weekday::Sun
+  }
+
   pub fn from_eclipse_date_format(date: &str) -> Self {
     let end_year_index = date.find(' ').unwrap();
     let year = date[..end_year_index].parse::<i32>().unwrap();
@@ -42,7 +59,7 @@ impl Time {
     }
   }
 
-  pub fn from_quandl_api_date_format(date: &str) -> Self {
+  pub fn from_api_format(date: &str) -> Self {
     let year = date[..4].parse::<i32>().unwrap();
     let month = Month::from_num(date[5..7].parse::<u32>().unwrap());
     let day = Day::from_num(date[8..10].parse::<u32>().unwrap());
@@ -135,13 +152,17 @@ impl Time {
 
   /// Create Time from UNIX timestamp
   pub fn from_unix(unix: i64) -> Self {
-    let date = chrono::Utc
+    let date = Utc
       .timestamp_opt(unix, 0)
       .unwrap();
     let year = date.naive_utc().year();
     let month = Month::from_num(date.naive_utc().month());
     let day = Day::from_num(date.naive_utc().day());
     Time::new(year, &month, &day)
+  }
+
+  pub fn to_unix(&self) -> i64 {
+    self.to_datetime().timestamp()
   }
 
   pub fn from_unix_msec(unix: i64) -> Self {
@@ -168,7 +189,7 @@ impl PartialOrd for Time {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum Month {
   January,
   February,
@@ -274,7 +295,7 @@ impl Month {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum Day {
   One,
   Two,

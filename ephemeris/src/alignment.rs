@@ -29,6 +29,12 @@ pub enum Alignment {
   Quintile288,
   Sextile60,
   Sextile300,
+  Septile51,
+  Septile102,
+  Septile154,
+  Septile205,
+  Septile257,
+  Septile308,
   Octile45,
   Octile135,
   Octile225,
@@ -50,6 +56,12 @@ impl Alignment {
       Alignment::Quintile288 => "Quintile288",
       Alignment::Sextile60 => "Sextile60",
       Alignment::Sextile300 => "Sextile300",
+      Alignment::Septile51 => "Septile51",
+      Alignment::Septile102 => "Septile102",
+      Alignment::Septile154 => "Septile154",
+      Alignment::Septile205 => "Septile205",
+      Alignment::Septile257 => "Septile257",
+      Alignment::Septile308 => "Septile308",
       Alignment::Octile45 => "Octile45",
       Alignment::Octile135 => "Octile135",
       Alignment::Octile225 => "Octile225",
@@ -71,6 +83,12 @@ impl Alignment {
       Alignment::Quintile288 => 288.0,
       Alignment::Sextile60 => 60.0,
       Alignment::Sextile300 => 300.0,
+      Alignment::Septile51 => 51.42857143,
+      Alignment::Septile102 => 102.8571429,
+      Alignment::Septile154 => 154.2857143,
+      Alignment::Septile205 => 205.7142857,
+      Alignment::Septile257 => 257.1428571,
+      Alignment::Septile308 => 308.5714286,
       Alignment::Octile45 => 45.0,
       Alignment::Octile135 => 135.0,
       Alignment::Octile225 => 225.0,
@@ -93,49 +111,67 @@ impl Alignment {
     if diff < margin {
       Some(Alignment::Conjunct)
     }
-    else if Alignment::normalize(diff - 180.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Opposite.to_num()) < margin {
       Some(Alignment::Opposite)
     }
-    else if Alignment::normalize(diff - 120.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Trine120.to_num()) < margin {
       Some(Alignment::Trine120)
     }
-    else if Alignment::normalize(diff - 240.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Trine240.to_num()) < margin {
       Some(Alignment::Trine240)
     }
-    else if Alignment::normalize(diff - 90.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Square90.to_num()) < margin {
       Some(Alignment::Square90)
     }
-    else if Alignment::normalize(diff - 270.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Square270.to_num()) < margin {
       Some(Alignment::Square270)
     }
-    else if Alignment::normalize(diff - 72.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Quintile72.to_num()) < margin {
       Some(Alignment::Quintile72)
     }
-    else if Alignment::normalize(diff - 144.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Quintile144.to_num()) < margin {
       Some(Alignment::Quintile144)
     }
-    else if Alignment::normalize(diff - 216.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Quintile216.to_num()) < margin {
       Some(Alignment::Quintile216)
     }
-    else if Alignment::normalize(diff - 288.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Quintile288.to_num()) < margin {
       Some(Alignment::Quintile288)
     }
-    else if Alignment::normalize(diff - 60.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Sextile60.to_num()) < margin {
       Some(Alignment::Sextile60)
     }
-    else if Alignment::normalize(diff - 300.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Sextile300.to_num()) < margin {
        Some(Alignment::Sextile300)
     }
-    else if Alignment::normalize(diff - 45.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Septile51.to_num()) < margin {
+      Some(Alignment::Septile51)
+    }
+    else if Alignment::normalize(diff - Alignment::Septile102.to_num()) < margin {
+      Some(Alignment::Septile102)
+    }
+    else if Alignment::normalize(diff - Alignment::Septile154.to_num()) < margin {
+      Some(Alignment::Septile154)
+    }
+    else if Alignment::normalize(diff - Alignment::Septile205.to_num()) < margin {
+      Some(Alignment::Septile205)
+    }
+    else if Alignment::normalize(diff - Alignment::Septile257.to_num()) < margin {
+      Some(Alignment::Septile257)
+    }
+    else if Alignment::normalize(diff - Alignment::Septile308.to_num()) < margin {
+      Some(Alignment::Septile308)
+    }
+    else if Alignment::normalize(diff - Alignment::Octile45.to_num()) < margin {
       Some(Alignment::Octile45)
     }
-    else if Alignment::normalize(diff - 135.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Octile135.to_num()) < margin {
       Some(Alignment::Octile135)
     }
-    else if Alignment::normalize(diff - 225.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Octile225.to_num()) < margin {
       Some(Alignment::Octile225)
     }
-    else if Alignment::normalize(diff - 315.0) < margin {
+    else if Alignment::normalize(diff - Alignment::Octile315.to_num()) < margin {
       Some(Alignment::Octile315)
     }
     else {
@@ -157,10 +193,55 @@ impl Alignment {
       Alignment::Quintile288,
       Alignment::Sextile60,
       Alignment::Sextile300,
+      Alignment::Septile51,
+      Alignment::Septile102,
+      Alignment::Septile154,
+      Alignment::Septile205,
+      Alignment::Septile257,
+      Alignment::Septile308,
       Alignment::Octile45,
       Alignment::Octile135,
       Alignment::Octile225,
       Alignment::Octile315,
+    ]
+  }
+
+  pub fn trine() -> Vec<Alignment> {
+    vec![
+      Alignment::Trine120,
+      Alignment::Trine240
+    ]
+  }
+
+  pub fn square() -> Vec<Alignment> {
+    vec![
+      Alignment::Square90,
+      Alignment::Square270
+    ]
+  }
+
+  pub fn quintile() -> Vec<Alignment> {
+    vec![
+      Alignment::Quintile72,
+      Alignment::Quintile144,
+      Alignment::Quintile216,
+      Alignment::Quintile288
+    ]
+  }
+
+  pub fn sextile() -> Vec<Alignment> {
+    vec![
+      Alignment::Sextile60,
+      Alignment::Sextile300
+    ]
+  }
+
+  pub fn octile() -> Vec<Alignment> {
+    vec![
+      Alignment::Octile45,
+      Alignment::Octile135,
+      Alignment::Octile225,
+      Alignment::Octile315
     ]
   }
 }

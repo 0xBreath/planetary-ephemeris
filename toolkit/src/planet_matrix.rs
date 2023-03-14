@@ -42,8 +42,8 @@ impl PlanetMatrix {
     start_time: &Time,
     end_time: &Time,
     alignment_margin_error: f32,
-    planets: &Vec<Planet>,
-    harmonics: &Vec<Alignment>
+    planets: &[Planet],
+    harmonics: &[Alignment]
   ) -> std::io::Result<Self> {
     if start_time.diff_days(end_time) < 1 {
       return Err(std::io::Error::new(
@@ -170,7 +170,7 @@ impl PlanetMatrix {
     let mut vec = Vec::<PlanetPairAlignmentWinRate>::new();
     for (planet_a, planet_b, alignments) in self.matrix.iter() {
       // index follows `Alignment` enum order
-      let mut alignment_counts = vec![0; 16];
+      let mut alignment_counts = vec![0; 21];
 
       for data in alignments.iter() {
         let alignment = &data.2;
@@ -187,10 +187,16 @@ impl PlanetMatrix {
           Alignment::Quintile288 => alignment_counts[9] += 1,
           Alignment::Sextile60 => alignment_counts[10] += 1,
           Alignment::Sextile300 => alignment_counts[11] += 1,
-          Alignment::Octile45 => alignment_counts[12] += 1,
-          Alignment::Octile135 => alignment_counts[13] += 1,
-          Alignment::Octile225 => alignment_counts[14] += 1,
-          Alignment::Octile315 => alignment_counts[15] += 1,
+          Alignment::Septile51 => alignment_counts[12] += 1,
+          Alignment::Septile102 => alignment_counts[13] += 1,
+          Alignment::Septile154 => alignment_counts[14] += 1,
+          Alignment::Septile205 => alignment_counts[15] += 1,
+          Alignment::Septile257 => alignment_counts[16] += 1,
+          Alignment::Septile308 => alignment_counts[17] += 1,
+          Alignment::Octile45 => alignment_counts[18] += 1,
+          Alignment::Octile135 => alignment_counts[19] += 1,
+          Alignment::Octile225 => alignment_counts[20] += 1,
+          Alignment::Octile315 => alignment_counts[21] += 1,
         }
       }
       for (index, alignment) in Alignment::to_vec().iter().enumerate() {
@@ -268,7 +274,8 @@ impl PlanetMatrix {
     planets: &Vec<Planet>,
     harmonics: &Vec<Alignment>,
   ) {
-    let ticker_data = TickerData::new_from_csv(ticker_data_path);
+    let mut ticker_data = TickerData::new();
+    ticker_data.add_csv_series(ticker_data_path).expect("Failed to add CSV to TickerData");
     let reversals = ticker_data.find_reversals(candle_range);
     if ticker_data.candles.is_empty() {
       return

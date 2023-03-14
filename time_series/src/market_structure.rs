@@ -232,7 +232,8 @@ impl MarketStructure {
   }
 
   pub fn test_market_structure(candle_range: usize, results_file: &PathBuf) {
-    let ticker_data = TickerData::new_from_csv(results_file);
+    let mut ticker_data = TickerData::new();
+    ticker_data.add_csv_series(results_file).expect("Failed to create TickerData");
     let market_structure = MarketStructure::new(&ticker_data, candle_range);
 
     match &market_structure.latest_high {

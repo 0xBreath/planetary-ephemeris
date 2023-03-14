@@ -1,9 +1,20 @@
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::path::PathBuf;
 use csv;
 use log::debug;
-use ephemeris::Time;
+use crate::Time;
 use crate::*;
+use std::io::Error;
+use std::str::FromStr;
+
+
+#[derive(Debug, Clone)]
+pub struct ReversalPrediction {
+  pub date: Time,
+  pub candle: Option<Candle>
+}
 
 #[derive(Debug, Clone)]
 pub enum FirstMove {
@@ -41,10 +52,30 @@ pub struct Reversal {
 pub struct TickerData {
   /// Candlestick history of a ticker.
   pub candles: Vec<Candle>,
+  hashmap: HashMap<u64, Candle>,
+  hasher: CandleHasher
+}
+
+impl Default for TickerData {
+  fn default() -> Self {
+    Self {
+      candles: Vec::<Candle>::new(),
+      hashmap: HashMap::new(),
+      hasher: CandleHasher::new()
+    }
+  }
 }
 
 impl TickerData {
-  pub fn new_from_csv(csv_path: &PathBuf) -> Self {
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  /// Read candles from CSV file.
+  /// Handles duplicate candles and sorts candles by date.
+  /// Expects date of candle to be in UNIX timestamp format.
+  /// CSV format: date,open,high,low,close,volume
+  pub fn add_csv_series(&mut self, csv_path: &PathBuf) -> Result<(), Error> {
     let file_buffer = File::open(csv_path).unwrap();
     let mut csv = csv::Reader::from_reader(file_buffer);
 
@@ -55,55 +86,55 @@ impl TickerData {
       }
     }
 
-    let mut data = Vec::new();
     for record in csv.records().flatten() {
       let date = Time::from_unix(
         record[0].parse::<i64>().expect("failed to parse candle UNIX timestamp into i64")
       );
+      let volume = match record[5].parse::<String>() {
+        Err(_) => None,
+        Ok(vol) => {
+          if vol == "NaN" {
+            None
+          } else {
+            let vol = f64::from_str(&vol).expect("failed to parse candle volume into f64");
+            Some(vol)
+          }
+        }
+      };
       let candle = Candle {
         date,
-        open: record[1].parse().unwrap(),
-        high: record[2].parse().unwrap(),
-        low: record[3].parse().unwrap(),
-        close: record[4].parse().unwrap(),
+        open: f64::from_str(&record[1]).expect("failed to parse candle volume into f64"),
+        high: f64::from_str(&record[2]).expect("failed to parse candle volume into f64"),
+        low: f64::from_str(&record[3]).expect("failed to parse candle volume into f64"),
+        close: f64::from_str(&record[4]).expect("failed to parse candle volume into f64"),
+        volume
       };
-      data.push(candle);
+      self.append_candle(&candle);
     }
-
-    Self { candles: data }
+    Ok(())
   }
 
-  /// Limited to 2 years of historical date (free plan)
-  pub async fn new_polygon_api(ticker_symbol: TickerSymbol, start_date: Time, end_date: Time) -> Self {
-    let polygon = PolygonApiWrapper::new(ticker_symbol, start_date, end_date).await;
-
-    let bars = polygon.response["results"].as_array().unwrap();
-    let mut candles = Vec::<Candle>::new();
-    for bar in bars.iter() {
-      candles.push(Candle {
-        date: Time::from_unix_msec(bar["t"].as_i64().unwrap()),
-        open: bar["o"].as_f64().unwrap(),
-        high: bar["h"].as_f64().unwrap(),
-        low: bar["l"].as_f64().unwrap(),
-        close: bar["c"].as_f64().unwrap(),
-      });
+  /// Append vector of candles received from an API to existing candles.
+  /// Handles duplicate candles and sorts candles by date.
+  pub fn add_series(&mut self, new_candles: Vec<Candle>) -> Result<(), Error> {
+    for candle in new_candles.into_iter() {
+      self.append_candle(&candle);
     }
-
-    Self { candles }
+    Ok(())
   }
 
-  pub async fn new_quandl_api(start_date: Time, end_date: Time, factor: f64) -> Self {
-    let quandl = QuandlApiWrapper::new(start_date, end_date).await;
-    let mut data = Self { candles: quandl.candles };
-    data = data.scale(factor);
-    data
+  /// If candle does not exist in self.candles, append candle to self.candles.
+  /// Sort candles by date.
+  fn append_candle(&mut self, candle: &Candle) {
+    let key = self.hasher.hash_candle(candle);
+    if let Entry::Vacant(e) = self.hashmap.entry(key) {
+      e.insert(candle.clone());
+      self.candles.push(candle.clone());
+      self.candles.sort_by(|a, b| a.date.partial_cmp(&b.date).expect("Failed to partial compare candle dates"));
+    }
   }
 
-  pub fn from_candles(candles: Vec<Candle>) -> Self {
-    Self { candles }
-  }
-
-  pub fn scale(&self, factor: f64) -> Self {
+  pub fn scale(&mut self, factor: f64) -> Result<(), Error> {
     let mut candles = Vec::<Candle>::new();
     for candle in self.candles.iter() {
       let mut copy = candle.clone();
@@ -113,7 +144,8 @@ impl TickerData {
       copy.close *= factor;
       candles.push(copy);
     }
-    Self::from_candles(candles)
+    self.candles = candles;
+    Ok(())
   }
 
   /// Get reference to `Vec<Candle>` from `TickerData`.
@@ -205,6 +237,74 @@ impl TickerData {
     lowest_low
   }
 
+  fn get_candle_by_date(&self, date: &Time) -> Option<Candle> {
+    for candle in self.candles.iter() {
+      if candle.date == *date {
+        return Some(candle.clone())
+      }
+    }
+    return None
+  }
+
+  fn get_square_price_periods(&self, reversal: &Reversal) -> Vec<u32> {
+    let price_extreme = match reversal.reversal_type {
+      ReversalType::Top => reversal.candle.high,
+      ReversalType::Bottom => reversal.candle.low
+    }.to_string();
+
+    let price_pieces = price_extreme.split('.').collect::<Vec<&str>>();
+    let price: String = match price_pieces.len() > 1 {
+      false => {
+        let price = price_pieces.first().unwrap().to_string();
+        price
+      },
+      true => {
+        let integer = price_pieces.first().unwrap().to_string();
+        let decimal = *price_pieces.get(1).unwrap();
+        let price = integer + decimal;
+        price
+      }
+    };
+    let period = price[0..2].parse::<u32>().unwrap();
+    // TODO: best cutoff to use single digit instead of double digit period?
+    //  50 day period becomes 5 days
+    if period > 50 {
+      vec![period, period / 10]
+    } else {
+      vec![period]
+    }
+  }
+
+  pub fn square_price_reversals(&self, candle_range: usize) -> Vec<ReversalPrediction> {
+    let mut time_cycle_reversals = Vec::<ReversalPrediction>::new();
+    let reversals = self.find_reversals(candle_range);
+    // finds all reversals defined as +/- candle_range, which is 20 right now.
+    for reversal in reversals.iter() {
+      // get price extreme for that reversal, which is high or low depending
+      // 1-2 periods. $15000, then it returns 15. If $60000, then it returns 60 and 6
+      let square_price_periods: Vec<u32> = self.get_square_price_periods(reversal);
+      for period in square_price_periods.iter() {
+        let future_reversal_date = reversal.candle.date.delta_date(*period as i64);
+        match self.get_candle_by_date(&future_reversal_date) {
+          Some(future_reversal_candle) => {
+            time_cycle_reversals.push(ReversalPrediction {
+              date: future_reversal_date,
+              candle: Some(future_reversal_candle)
+            });
+          },
+          None => {
+            time_cycle_reversals.push(ReversalPrediction {
+              date: future_reversal_date,
+              candle: None
+            });
+          }
+        }
+      }
+    }
+    time_cycle_reversals.sort_by(|a, b| a.date.partial_cmp(&b.date).unwrap());
+    time_cycle_reversals
+  }
+
   // TODO: better system for finding reversals
   /// Find price extremes (highs and lows) in a given range of candles +/- the extreme candle.
   pub fn find_reversals(&self, candle_range: usize) -> Vec<Reversal> {
@@ -213,7 +313,7 @@ impl TickerData {
       if index < candle_range || index + candle_range > self.candles.len() - 1 {
         continue;
       }
-      let range = &self.candles[index - (candle_range / 2)..(index + candle_range)];
+      let range = &self.candles[index - (candle_range)..(index + candle_range)];
       let mut min_candle: &Candle = range.get(0).unwrap();
       let mut max_candle: &Candle = range.get(0).unwrap();
       for (index, candle) in range.iter().enumerate() {

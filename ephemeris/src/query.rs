@@ -3,7 +3,7 @@ use crate::{Alignment, DataType, Declination, Origin, Planet, RightAscension};
 use crate::target::Target;
 use crate::quantities::Quantities;
 use crate::step_size::StepSize;
-use crate::time::Time;
+use time_series::time::Time;
 
 pub const BASE_QUERY: &str = "https://ssd.jpl.nasa.gov/api/horizons.api?format=text";
 

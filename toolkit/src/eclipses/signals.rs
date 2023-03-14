@@ -1,4 +1,5 @@
 use ephemeris::*;
+use time_series::Time;
 use crate::*;
 
 
@@ -82,26 +83,6 @@ impl PlanetRetrogradeOnEclipse {
       planet,
       eclipse,
       retrograde,
-    }
-  }
-}
-
-#[derive(Clone, Debug)]
-pub struct PlanetIngressOnEclipse {
-  pub planet: Planet,
-  pub zodiac: Zodiac,
-  pub eclipse: EclipseEvent,
-}
-impl PlanetIngressOnEclipse {
-  pub fn new(
-    planet: Planet,
-    zodiac: Zodiac,
-    eclipse: EclipseEvent,
-  ) -> Self {
-    Self {
-      planet,
-      zodiac,
-      eclipse,
     }
   }
 }
@@ -222,7 +203,6 @@ impl EclipseEvent {
 #[derive(Clone, Debug)]
 pub struct EclipseSignals {
   pub eclipse: EclipseEvent,
-  pub ingress_signals: Option<Vec<PlanetIngressOnEclipse>>,
   pub retrograde_signals: Option<Vec<PlanetRetrogradeOnEclipse>>,
   pub planet_pair_alignment_signals: Option<Vec<PlanetPairAlignmentOnEclipse>>,
   pub self_alignment_signals: Option<Vec<PlanetSelfAlignmentTwoEclipses>>,

@@ -1,7 +1,0 @@
-Number of Reversals in last -184 days: 3151Reversal defined by price extreme of +/- the adjacent 5 candlesMargin of Error within actual reversal candle close: 2%Square of Nine step interval: 0.1
-WIN RATE		WIN COUNT		TOTAL ALIGNMENTS
-
-
-    The “win rates” are the odds the algorithm would have known the day a reversal will occur
-    and been within 2% of entering a trade at the close of that reversal candle.
-    Backtest is for BTCUSD 2019-07-01 to 2020-01-01.

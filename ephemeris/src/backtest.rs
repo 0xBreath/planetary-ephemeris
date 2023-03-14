@@ -1,5 +1,5 @@
-use ephemeris::Planet;
-use crate::Candle;
+use crate::Planet;
+use time_series::Candle;
 
 #[derive(Debug, Clone)]
 pub struct Backtest {
