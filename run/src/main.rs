@@ -1,11 +1,15 @@
 use std::path::PathBuf;
 use log::LevelFilter;
+use plotters::prelude::full_palette::{RED, BLUE, GREEN};
 use simplelog::{
   ColorChoice, Config, TerminalMode, TermLogger,
 };
 use time_series::*;
 
-const SPX_PFS_FILE: &str = "./SPX/SPX_pfs.png";
+const SPX_PFS_10_FILE: &str = "./SPX/SPX_pfs_10.png";
+const SPX_PFS_19_FILE: &str = "./SPX/SPX_pfs_19.png";
+const SPX_PFS_20_FILE: &str = "./SPX/SPX_pfs_20.png";
+const SPX_HDA_FILE: &str = "./SPX/SPX_hda.png";
 
 #[tokio::main]
 async fn main() {
@@ -23,14 +27,31 @@ async fn main() {
   // write full ticker_data history to CSV
   dataframe::ticker_dataframe(&ticker_data, &PathBuf::from("./SPX/SPX_history.csv"));
 
-  let start_date = Time::new(2022, &Month::July, &Day::Fourteen);
-  let end_date = Time::new(2023, &Month::January, &Day::Fourteen);
-  let cycle_years = 10;
 
-  let pfs = PlotPFS::new(cycle_years, start_date, end_date);
-  let daily_pfs = pfs.pfs(&ticker_data);
+  // ======================== Polarity Factor System ============================
+  let pfs_start_date = Time::new(2023, &Month::March, &Day::Ten);
+  let pfs_end_date = Time::new(2023, &Month::April, &Day::Ten);
+  // TODO: plot all PFS in one chart
+  let pfs_10 = PlotPFS::new(10, pfs_start_date, pfs_end_date);
+  let daily_pfs_10 = pfs_10.pfs(&ticker_data);
+  pfs_10.plot_pfs(&daily_pfs_10, SPX_PFS_10_FILE, "SPX - PFS 10", &GREEN);
 
-  pfs.plot_pfs(&daily_pfs,SPX_PFS_FILE, plot_color);
+  let pfs_19 = PlotPFS::new(19, pfs_start_date, pfs_end_date);
+  let daily_pfs_19 = pfs_19.pfs(&ticker_data);
+  pfs_19.plot_pfs(&daily_pfs_19,SPX_PFS_19_FILE, "SPX - PFS 19", &BLUE);
+
+  let pfs_20 = PlotPFS::new(20, pfs_start_date, pfs_end_date);
+  let daily_pfs_20 = pfs_20.pfs(&ticker_data);
+  pfs_20.plot_pfs(&daily_pfs_20,SPX_PFS_20_FILE, "SPX - PFS 20", &RED);
+
+  // ======================== Historical Date Analysis ============================
+  let hda_start_date = Time::new(2023, &Month::March, &Day::Ten);
+  let hda_end_date = Time::new(2023, &Month::April, &Day::Ten);
+  let hda_reversal_margin = 10;
+  let hda_margin = 1;
+  let hda = PlotHDA::new(hda_start_date, hda_end_date, hda_reversal_margin, hda_margin);
+  let daily_hda = hda.hda(&ticker_data);
+  hda.plot_hda(&daily_hda, SPX_HDA_FILE, "SPX - HDA", &BLUE);
 }
 
 

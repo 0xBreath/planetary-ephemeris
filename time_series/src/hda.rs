@@ -1,81 +1,89 @@
-use crate::{TickerData, Time};
-use chrono::{Duration, Local, NaiveDate, TimeZone};
+use chrono::Duration;
+use chrono::{Local, NaiveDate, TimeZone};
+use crate::*;
 use plotters::prelude::*;
 
-/// Polarity Factor System
-pub struct PFS {
+/// Historical Date Analysis
+pub struct HDA {
+  /// Reversal on this date
   pub date: Time,
-  pub value: f64
+  /// How many years had a reversal on this date
+  pub mode: u32
 }
 
-impl PFS {
-  pub fn new(date: Time, value: f64) -> Self {
-    Self { date, value }
+impl HDA {
+  pub fn new(date: Time, mode: u32) -> Self {
+    Self { date, mode }
   }
 }
 
-pub struct PlotPFS {
-  pub cycle_years: u32,
+pub struct PlotHDA {
+  /// Start date to plot daily HDA
   pub start_date: Time,
-  pub end_date: Time
+  /// End date to plot daily HDA
+  pub end_date: Time,
+  /// Define a candle reversal by local max or min +/- margin
+  pub reversal_margin: usize,
+  /// Candle is within this margin of a reversal (valid HDA)
+  pub hda_margin: usize,
 }
 
-impl PlotPFS {
-  pub fn new(cycle_years: u32, start_date: Time, end_date: Time) -> Self {
+impl PlotHDA {
+  pub fn new(start_date: Time, end_date: Time, reversal_margin: usize, hda_margin: usize) -> Self {
     Self {
-      cycle_years,
       start_date,
-      end_date
+      end_date,
+      reversal_margin,
+      hda_margin
     }
   }
 
-  pub fn pfs(&self, ticker_data: &TickerData) -> Vec<PFS> {
-    let mut daily_pfs = Vec::<PFS>::new();
+  /// Compute Historical Date Analysis
+  /// Compares the same date of each year for similar price action
+  pub fn hda(&self, ticker_data: &TickerData) -> Vec<HDA> {
+    let mut daily_hda = Vec::<HDA>::new();
 
     // compute number of cycles possible in candle history
-    let earliest_candle_year = ticker_data.earliest_date().year;
-    let latest_candle_year = ticker_data.latest_date().year;
-    let num_cycles = (latest_candle_year - earliest_candle_year) / self.cycle_years as i32;
+    let earliest_date = ticker_data.earliest_date();
+    let earliest_candle_year = earliest_date.year;
+    let latest_date = ticker_data.latest_date();
+    let latest_candle_year = latest_date.year;
+    let total_years_back = latest_candle_year - earliest_candle_year;
 
     let time_period = self.start_date.time_period(&self.end_date);
     for date in time_period.iter() {
-      // PFS for this date
-      let mut pfs = (100.0, 1);
-      // iterate possible cycles in candle history
-      let mut found_cycle_date = false;
-      for cycle in 1..num_cycles + 1 {
-        // find candle X cycles back
-        for (index, candle) in ticker_data.candles.iter().enumerate() {
-          if index == 0 {
-            continue;
-          }
-          // used to compute percent change between candles
+      // HDA for this date (frequency of reversals on this date across all years)
+      let mut hda = 0;
+      // find candle X cycles back
+      for (index, candle) in ticker_data.candles.iter().enumerate() {
+        if index == 0 {
+          continue;
+        }
+        // iterate over each year back
+        for years_back in 0..total_years_back {
+          // candle date X years back
+          let cycle_date = Time::new(date.year - years_back, &date.month, &date.day);
+          // found candle in previous year on this date
           let prev_candle = ticker_data.candles.get(index - 1).expect("Failed to get previous candle");
-          // candle X cycles back
-          let cycle_date = Time::new(date.year - self.cycle_years as i32 * cycle, &date.month, &date.day);
-          // found candle X cycles back
           if prev_candle.date < cycle_date && candle.date >= cycle_date {
-            let change = candle.percent_change(prev_candle.close);
-            pfs = (pfs.0 + change, pfs.1 + 1);
-            found_cycle_date = true;
-            break;
+            // if candle is within margin of local high or low
+            if ticker_data.candle_is_high(candle, self.reversal_margin, self.hda_margin) || ticker_data.candle_is_low(candle, self.reversal_margin, self.hda_margin) {
+              hda += 1;
+            }
           }
         }
       }
-      if !found_cycle_date {
-        panic!("Could not find cycle date for {}", date.as_string());
-      }
-      daily_pfs.push(PFS {
+      daily_hda.push(HDA {
         date: *date,
-        value: pfs.0 / pfs.1 as f64
+        mode: hda
       });
     }
-    daily_pfs
+    daily_hda
   }
 
-  pub fn plot_pfs(&self, daily_pfs: &[PFS], out_file: &str, plot_title: &str, plot_color: &RGBColor) {
+  pub fn plot_hda(&self, daily_hda: &[HDA], out_file: &str, plot_title: &str, plot_color: &RGBColor) {
     // get daily PFS data
-    let data = self.get_data(daily_pfs);
+    let data = self.get_data(daily_hda);
     // draw chart
     let root = BitMapBackend::new(out_file, (2048, 1024)).into_drawing_area();
     root.fill(&WHITE).unwrap();
@@ -83,18 +91,18 @@ impl PlotPFS {
     let from_date_index = self.find_date_index(&data, &self.start_date);
     let from_date_input = self.parse_time(&data[from_date_index].0);
     let from_date = from_date_input - Duration::days(1);
-    println!("PFS Start Date: {}", from_date);
+    println!("HDA Start Date: {}", from_date);
     // PFS end date
     let to_date_index = self.find_date_index(&data, &self.end_date);
     let to_date_input = self.parse_time(&data[to_date_index].0);
     let to_date = to_date_input + Duration::days(1);
-    println!("PFS End Date: {}", to_date);
+    println!("HDA End Date: {}", to_date);
     // label chart
     let mut chart = ChartBuilder::on(&root)
       .x_label_area_size(40)
       .y_label_area_size(40)
       .caption(plot_title, ("sans-serif", 50.0).into_font())
-      .build_cartesian_2d(from_date..to_date, 97f32..103f32).unwrap();
+      .build_cartesian_2d(from_date..to_date, 0f32..20f32).unwrap();
     chart.configure_mesh().light_line_style(WHITE).draw().unwrap();
     // plot PFS values
     chart.draw_series(
@@ -105,12 +113,12 @@ impl PlotPFS {
     println!("Result has been saved to {}", out_file);
   }
 
-  fn get_data(&self, daily_pfs: &[PFS]) -> Vec<(String, f32)> {
+  fn get_data(&self, daily_hda: &[HDA]) -> Vec<(String, f32)> {
     let mut data = Vec::new();
-    for pfs in daily_pfs.iter() {
+    for hda in daily_hda.iter() {
       data.push((
-        pfs.date.as_string(),
-        pfs.value as f32,
+        hda.date.as_string(),
+        hda.mode as f32,
       ));
     }
     data

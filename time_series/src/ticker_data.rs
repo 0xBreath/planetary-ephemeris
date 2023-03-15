@@ -237,6 +237,30 @@ impl TickerData {
     lowest_low
   }
 
+  pub fn candle_is_high(&self, candle: &Candle, reversal_margin: usize, error_margin: usize) -> bool {
+    let local_highs = self.find_local_highs(reversal_margin);
+    for local_high in local_highs.iter() {
+      if local_high.date.delta_date(-(error_margin as i64)) <= candle.date &&
+        local_high.date.delta_date(error_margin as i64) >= candle.date
+      {
+        return true;
+      }
+    }
+    false
+  }
+
+  pub fn candle_is_low(&self, candle: &Candle, reversal_margin: usize, error_margin: usize) -> bool {
+    let local_lows = self.find_local_highs(reversal_margin);
+    for local_low in local_lows.iter() {
+      if local_low.date.delta_date(-(error_margin as i64)) <= candle.date &&
+        local_low.date.delta_date(error_margin as i64) >= candle.date
+      {
+        return true;
+      }
+    }
+    false
+  }
+
   fn get_candle_by_date(&self, date: &Time) -> Option<Candle> {
     for candle in self.candles.iter() {
       if candle.date == *date {

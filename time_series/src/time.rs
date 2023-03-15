@@ -75,7 +75,7 @@ impl Time {
     format!("{}-{}-{}", self.year, self.month.to_string(), self.day.to_string())
   }
   pub fn to_naive_date(&self) -> NaiveDate {
-    chrono::NaiveDate::from_ymd_opt(
+    NaiveDate::from_ymd_opt(
       self.year,
       self.month.to_num(),
       self.day.to_num()

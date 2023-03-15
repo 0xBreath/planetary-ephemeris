@@ -5,6 +5,7 @@ pub mod market_structure;
 pub mod rapid_api;
 pub mod time;
 pub mod pfs;
+pub mod hda;
 
 pub use ticker_data::*;
 pub use candle::*;
@@ -13,3 +14,4 @@ pub use market_structure::*;
 pub use rapid_api::*;
 pub use time::*;
 pub use pfs::*;
+pub use hda::*;
